@@ -1,0 +1,402 @@
+{
+  "roles": [
+    {
+      "id": "r1",
+      "name": "Admin"
+    },
+    {
+      "id": "r2",
+      "name": "Teacher"
+    },
+    {
+      "id": "r3",
+      "name": "Student"
+    }
+  ],
+  "users": [
+    {
+      "id": "u1",
+      "fullName": "Nguyen Van A",
+      "userName": "nguyenvana",
+      "password": "password123",
+      "email": "vana@example.com",
+      "number": "0901000001",
+      "birthday": "1985-01-01",
+      "address": "Hanoi",
+      "roleId": "r1"
+    },
+    {
+      "id": "u2",
+      "fullName": "Tran Thi B",
+      "userName": "tranthib",
+      "password": "password123",
+      "email": "thib@example.com",
+      "number": "0901000002",
+      "birthday": "1988-02-02",
+      "address": "HCM",
+      "roleId": "r2"
+    },
+    {
+      "id": "u3",
+      "fullName": "Le Van C",
+      "userName": "levanc",
+      "password": "password123",
+      "email": "vanc@example.com",
+      "number": "0901000003",
+      "birthday": "1990-03-03",
+      "address": "Da Nang",
+      "roleId": "r2"
+    },
+    {
+      "id": "u4",
+      "fullName": "Pham Thi D",
+      "userName": "phamthid",
+      "password": "password123",
+      "email": "thid@example.com",
+      "number": "0901000004",
+      "birthday": "2000-04-04",
+      "address": "Hue",
+      "roleId": "r3"
+    },
+    {
+      "id": "u5",
+      "fullName": "Hoang Van E",
+      "userName": "hoangvane",
+      "password": "password123",
+      "email": "vane@example.com",
+      "number": "0901000005",
+      "birthday": "2001-05-05",
+      "address": "Can Tho",
+      "roleId": "r3"
+    },
+    {
+      "id": "u6",
+      "fullName": "Nguyen Thi F",
+      "userName": "nguyenthif",
+      "password": "password123",
+      "email": "thif@example.com",
+      "number": "0901000006",
+      "birthday": "2002-06-06",
+      "address": "Hanoi",
+      "roleId": "r3"
+    },
+    {
+      "id": "u7",
+      "fullName": "Bui Van G",
+      "userName": "buivang",
+      "password": "password123",
+      "email": "vang@example.com",
+      "number": "0901000007",
+      "birthday": "2000-07-07",
+      "address": "Quang Ninh",
+      "roleId": "r3"
+    },
+    {
+      "id": "u8",
+      "fullName": "Do Thi H",
+      "userName": "dothih",
+      "password": "password123",
+      "email": "thih@example.com",
+      "number": "0901000008",
+      "birthday": "2003-08-08",
+      "address": "Vinh",
+      "roleId": "r3"
+    },
+    {
+      "id": "u9",
+      "fullName": "Vu Van I",
+      "userName": "vuvani",
+      "password": "password123",
+      "email": "vani@example.com",
+      "number": "0901000009",
+      "birthday": "2001-09-09",
+      "address": "Nam Dinh",
+      "roleId": "r3"
+    },
+    {
+      "id": "u10",
+      "fullName": "Tran Thi J",
+      "userName": "tranthij",
+      "password": "password123",
+      "email": "thij@example.com",
+      "number": "0901000010",
+      "birthday": "2004-10-10",
+      "address": "Hai Phong",
+      "roleId": "r3"
+    }
+  ],
+  "classes": [
+    {
+      "id": "c1",
+      "name": "A",      
+      "courseId": "course_001",
+      "startDate": "2025-05-01",
+      "status": "ongoing",
+      "teacherId": [
+        "u2"        
+      ],
+      "students": [
+        "u4",
+        "u5",
+        "u6",
+        "u7",
+        "u8"
+      ]
+    }
+  ],
+  "grades": [
+    {
+      "id": "1",
+      "studentId": "u4",
+      "classId": "c1",
+      "score": {
+        "listening": 8.5,
+        "reading": 7.0,
+        "writing": 6.5,
+        "speaking": 7.5
+      },      
+      "comment": "Làm bài tốt, chú ý phần speaking."
+    },
+    {
+      "id": "2",
+      "studentId": "u5",
+      "classId": "c1",
+      "score": {
+        "listening": 7.0,
+        "reading": 6.5,
+        "writing": 6.0,
+        "speaking": 7.0
+      },
+      "comment": "Cần cải thiện kỹ năng viết."
+    },
+    {
+      "id": "3",
+      "studentId": "u6",
+      "classId": "c1",
+      "score": {
+        "listening": 9.0,
+        "reading": 8.5,
+        "writing": 8.0,
+        "speaking": 9.0
+      },
+      "comment": ""
+    },
+    {
+      "id": "4",
+      "studentId": "u7",
+      "classId": "c1",
+      "score": {
+        "listening": 6.0,
+        "reading": 5.5,
+        "writing": 6.0,
+        "speaking": 6.5
+      },
+      "comment": "Cần cải thiện kỹ năng nghe và đọc."
+    },
+    {
+      "id": "5",
+      "studentId": "u8",
+      "classId": "c1",
+      "score": {
+        "listening": 7.5,
+        "reading": 7.0,
+        "writing": 7.5,
+        "speaking": 8.0
+      },
+      "comment": ""
+    }
+  ],
+  "rooms": [
+    {
+      "id": "1",
+      "name": "R101",
+      "capacity": 30,
+      "available": true,
+      "type": "classroom",
+      "location": "Building A, Floor 1"
+    },
+    {
+      "id": "2",
+      "name": "Room 102",
+      "capacity": 25,
+      "available": true,
+      "type": "classroom",
+      "location": "Building A, Floor 1"
+    },
+    {
+      "id": "3",
+      "name": "Room 103",
+      "capacity": 20,
+      "available": false,
+      "type": "classroom",
+      "location": "Building B, Floor 2"
+    },
+    {
+      "id": "4",
+      "name": "Room 104",
+      "capacity": 15,
+      "available": true,
+      "type": "meeting room",
+      "location": "Building B, Floor 2"
+    },
+    {
+      "id": "5",
+      "name": "Room 105",
+      "capacity": 40,
+      "available": true,
+      "type": "auditorium",
+      "location": "Building C, Floor 3"
+    },
+    {
+      "id": "6",
+      "name": "Room 106",
+      "capacity": 10,
+      "available": true,
+      "type": "classroom",
+      "location": "Building C, Floor 3"
+    },
+    {
+      "id": "7",
+      "name": "Room 107",
+      "capacity": 50,
+      "available": false,
+      "type": "auditorium",
+      "location": "Building D, Floor 4"
+    },
+    {
+      "id": "8",
+      "name": "Room 108",
+      "capacity": 30,
+      "available": true,
+      "type": "classroom",
+      "location": "Building D, Floor 4"
+    },
+    {
+      "id": "9",
+      "name": "Room 109",
+      "capacity": 20,
+      "available": true,
+      "type": "meeting room",
+      "location": "Building E, Floor 5"
+    },
+    {
+      "id": "10",
+      "name": "Room 110",
+      "capacity": 15,
+      "available": true,
+      "type": "classroom",
+      "location": "Building E, Floor 5"
+    }
+  ],
+  "slots": [
+    {
+      "id": "1",
+      "from": "08:00",
+      "to": "09:30"
+    },
+    {
+      "id": "2",
+      "from": "09:40",
+      "to": "11:10"
+    },
+    {
+      "id": "3",
+      "from": "13:00",
+      "to": "14:30"
+    },
+    {
+      "id": "4",
+      "from": "14:40",
+      "to": "16:10"
+    },
+    {
+      "id": "5",
+      "from": "18:00",
+      "to": "19:30"
+    },
+    {
+      "id": "6",
+      "from": "19:40",
+      "to": "21:10"
+    }
+  ],
+  "schedule": [
+    {
+      "id": "1",
+      "slotId": "1",
+      "classId": "c1",
+      "roomId": "1",
+      "date": "2025-05-25"      
+    }
+  ],
+  "attendances": [
+    {
+      "id": "1",
+      "studentId": "u4",
+      "scheduleId": "1",
+      "status": "present"
+    },
+    {
+      "id": "2",
+      "studentId": "u5",
+      "scheduleId": "1",
+      "status": "absent"
+    },
+    {
+      "id": "3",
+      "studentId": "u6",
+      "scheduleId": "1",
+      "status": "present"
+    },
+    {
+      "id": "4",
+      "studentId": "u7",
+      "scheduleId": "1",
+      "status": "present"
+    },
+    {
+      "id": "5",
+      "studentId": "u8",
+      "scheduleId": "1",
+      "status": "present"
+    }
+  ],
+  "courses": [
+    {
+      "id": "course_001",
+      "name": "English for Beginners",
+      "description": "Khóa học tiếng Anh cơ bản dành cho người mới bắt đầu.",
+      "image": "https://example.com/images/course_001.jpg",
+      "price": 1500000,
+      "status": "active",
+      "level": "beginner"
+    },
+    {
+      "id": "course_002",
+      "name": "IELTS Preparation",
+      "description": "Khóa học luyện thi IELTS cho trình độ trung cấp.",
+      "image": "https://example.com/images/course_002.jpg",
+      "price": 3500000,
+      "status": "active",
+      "level": "intermediate"
+    },
+    {
+      "id": "course_003",
+      "name": "Business English",
+      "description": "Khóa học tiếng Anh thương mại cho người đi làm.",
+      "image": "https://example.com/images/course_003.jpg",
+      "price": 3000000,
+      "status": "inactive",
+      "level": "advanced"
+    },
+    {
+      "id": "course_004",
+      "name": "English Speaking Club",
+      "description": "Câu lạc bộ nói tiếng Anh dành cho mọi trình độ.",
+      "image": "https://example.com/images/course_004.jpg",
+      "price": 1000000,
+      "status": "active",
+      "level": "beginner"
+    }
+  ]
+}
