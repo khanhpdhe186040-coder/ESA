@@ -7,7 +7,8 @@ const LoginPage = () => {
     username: '',
     password: '',
   });
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'error' | 'success'
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -21,16 +22,17 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setMessage('');
     
     // Client-side validation
     if (!formData.userName.trim()) {
-      setError('Please enter your username');
+      setMessage('Please enter your username');
+      setMessageType('error');
       return;
     }
-    
     if (!formData.password) {
-      setError('Please enter your password');
+      setMessage('Please enter your password');
+      setMessageType('error');
       return;
     }
     
@@ -56,32 +58,33 @@ const LoginPage = () => {
       console.log(data);
       if (response.ok && data.message === 'Login successfully') {
         localStorage.setItem('token', data.accessToken);
-        // localStorage.setItem("id", jwtDecode(data.accessToken).id);
-        // localStorage.setItem("roleId", jwtDecode(data.accessToken).roleId);
-        // Show success message
-        setError('Login successful! Redirecting...');
-
+      
+        setMessage('Login successful! Redirecting...');
+        setMessageType('success');
+      
         setTimeout(() => {
-        switch (jwtDecode(data.accessToken).roleId) {
-          case "r1":
-            navigate('/admin/dashboard');
-            break;
-          case "r2":
-            navigate('/teacher');
-            break;
-          case "r3":
-            navigate('/student');
-            break;
-          default:
-            navigate('/login');
-            break;
-        }
+          switch (jwtDecode(data.accessToken).roleId) {
+            case "r1":
+              navigate('/admin/dashboard');
+              break;
+            case "r2":
+              navigate('/teacher');
+              break;
+            case "r3":
+              navigate('/student');
+              break;
+            default:
+              navigate('/login');
+              break;
+          }
         }, 1000);
       } else {
-        setError(data.message || 'Invalid username or password');
+        setMessage(data.message || 'Invalid username or password');
+        setMessageType('error');
       }
     } catch (err) {
-      setError(err.message || 'Failed to login. Please try again.');
+      setMessage(err.message || 'Failed to login. Please try again.');
+      setMessageType('error');
     } finally {
       setIsLoading(false);
     }
@@ -106,21 +109,34 @@ const LoginPage = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          
+        {message && (
+  <div
+    className={`mb-4 border-l-4 p-4 ${
+      messageType === 'error'
+        ? 'bg-red-50 border-red-400 text-red-700'
+        : 'bg-green-50 border-green-400 text-green-700'
+    }`}
+  >
+    <div className="flex">
+      <div className="flex-shrink-0">
+        {messageType === 'error' ? (
+          // icon error
+          <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          // icon success
+          <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 10.707l-2-2a1 1 0 00-1.414 1.414l2.707 2.707a1 1 0 001.414 0l5.707-5.707a1 1 0 00-1.414-1.414l-5 5z" clipRule="evenodd" />
+          </svg>
+        )}
+      </div>
+      <div className="ml-3">
+        <p className="text-sm">{message}</p>
+      </div>
+    </div>
+  </div>
+)}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="userName" className="block text-sm font-medium text-gray-700">
