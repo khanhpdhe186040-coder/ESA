@@ -28,6 +28,8 @@ import ClassesManagement from "./pages/admin/ClassesManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import LoginPage from "./Login/Login";
 import ProtectedRoute from "./Login/ProtectedRoute";
+import NewsAdd from "./components/general/NewsAdd";
+import AdminLayout from "./layouts/AdminLayout";
 function App() {
   return (
     <Router>
@@ -78,6 +80,24 @@ function App() {
           element={
             <ProtectedRoute>
               <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsAdd />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/add"
+          element={
+            <ProtectedRoute>
+              <NewsAdd />
             </ProtectedRoute>
           }
         />
