@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Users, BookOpen, GraduationCap, LayoutDashboard } from "lucide-react";
+import { Users, BookOpen, GraduationCap, LayoutDashboard, Newspaper } from "lucide-react";
 
 export default function AdminSidebar() {
   const navigate = useNavigate();
@@ -19,6 +19,11 @@ export default function AdminSidebar() {
       icon: <GraduationCap size={20} />,
       text: "Manage Classes",
       link: "/admin/classes",
+    },
+    {
+      icon: <Newspaper size={20} />,
+      text: "Manage News",
+      link: "/admin/news",
     },
   ];
 
