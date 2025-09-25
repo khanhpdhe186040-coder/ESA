@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // Teacher
 import TeacherLayout from "./layouts/TeacherLayout";
@@ -28,12 +28,15 @@ import ClassesManagement from "./pages/admin/ClassesManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import LoginPage from "./Login/Login";
 import ProtectedRoute from "./Login/ProtectedRoute";
-import NewsAdd from "./components/general/NewsAdd";
+import NewsAdd from "./components/admin/NewsAdd";
 import AdminLayout from "./layouts/AdminLayout";
+import NewsList from "./components/general/NewsList";
+import NewsDetail from "./components/general/NewsDetail";
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
@@ -83,6 +86,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Admin news routes under AdminLayout */}
         <Route
           path="/admin/news"
           element={
@@ -97,13 +101,47 @@ function App() {
           path="/admin/news/add"
           element={
             <ProtectedRoute>
-              <NewsAdd />
+              <AdminLayout>
+                <NewsAdd />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/list"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsList />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsDetail />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/list/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsDetail />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
 
         {/* Student Layout */}
         <Route path="/student" element={<StudentLayout />}>
+          <Route path="news" element={<NewsList />} />
+          <Route path="news/:id" element={<NewsDetail />} />
           <Route path="schedule" element={<StudentSchedule />} />
           <Route path="my-classes" element={<MyClasses />} />
           <Route path="register-class" element={<RegisterClass />} />
@@ -112,6 +150,12 @@ function App() {
           <Route path="grade" element={<StudentGrades />} />
           <Route path="grade/:classId" element={<GradeDetails />} />
         </Route>
+        {/* Teacher Layout additions */}
+        <Route path="/teacher" element={<TeacherLayout />}>
+          <Route path="news" element={<NewsList />} />
+          <Route path="news/:id" element={<NewsDetail />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
