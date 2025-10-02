@@ -8,48 +8,43 @@ const Quiz = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
 
-    // State chung
+    // Các state giữ nguyên
     const [quiz, setQuiz] = useState(null);
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-
-    // State cho từng câu hỏi và tiến trình
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswerId, setSelectedAnswerId] = useState(null);
+    const [selectedAnswerIds, setSelectedAnswerIds] = useState([]);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [answerResult, setAnswerResult] = useState(null);
     const [finalScore, setFinalScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(null);
     const [isQuizFinished, setIsQuizFinished] = useState(false);
 
-    // --- LOGIC LƯU VÀ TẢI TRẠNG THÁI (ĐÃ NÂNG CẤP) ---
-
+    // Các hàm xử lý logic khác giữ nguyên
     const clearQuizState = useCallback(() => {
         localStorage.removeItem(QUIZ_STORAGE_KEY);
     }, []);
 
-    // Effect này chỉ chạy MỘT LẦN khi component được tải
+    const handleRetakeQuiz = () => {
+        clearQuizState();
+        window.location.reload();
+    };
+
     useEffect(() => {
         const loadStateAndFetchData = async () => {
             const savedState = JSON.parse(localStorage.getItem(QUIZ_STORAGE_KEY));
             
             if (savedState && savedState.courseId === courseId) {
-                // Khôi phục lại toàn bộ tiến trình, BAO GỒM CẢ TRẠNG THÁI SUBMIT
                 setQuiz(savedState.quiz);
                 setQuestions(savedState.questions);
                 setCurrentQuestionIndex(savedState.currentQuestionIndex);
                 setFinalScore(savedState.finalScore);
                 setTimeLeft(savedState.timeLeft);
                 setIsQuizFinished(savedState.isQuizFinished);
-                
-                // --- PHẦN NÂNG CẤP ---
-                // Khôi phục lại trạng thái của câu trả lời đã submit
-                setSelectedAnswerId(savedState.selectedAnswerId || null);
+                setSelectedAnswerIds(savedState.selectedAnswerIds || []);
                 setIsSubmitted(savedState.isSubmitted || false);
                 setAnswerResult(savedState.answerResult || null);
-                // --- KẾT THÚC NÂNG CẤP ---
-
                 setLoading(false);
             } else {
                 clearQuizState();
@@ -73,7 +68,6 @@ const Quiz = () => {
         loadStateAndFetchData();
     }, [courseId, clearQuizState]);
 
-    // Effect này sẽ LƯU trạng thái vào localStorage mỗi khi có thay đổi
     useEffect(() => {
         if (!loading && quiz && !isQuizFinished) {
             const stateToSave = {
@@ -81,27 +75,17 @@ const Quiz = () => {
                 quiz,
                 questions,
                 currentQuestionIndex,
-                finalScore,
-                timeLeft,
-                isQuizFinished,
-
-                // --- PHẦN NÂNG CẤP ---
-                // Lưu lại trạng thái của câu trả lời hiện tại
-                selectedAnswerId,
+                selectedAnswerIds,
                 isSubmitted,
                 answerResult,
-                // --- KẾT THÚC NÂNG CẤP ---
+                finalScore,
+                timeLeft,
+                isQuizFinished
             };
             localStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(stateToSave));
         }
-    }, [
-        courseId, quiz, questions, currentQuestionIndex, finalScore, timeLeft, isQuizFinished, loading,
-        selectedAnswerId, isSubmitted, answerResult // Thêm các state này vào dependency array
-    ]);
+    }, [courseId, quiz, questions, currentQuestionIndex, finalScore, selectedAnswerIds, timeLeft, isQuizFinished, loading, isSubmitted, answerResult]);
     
-    // --- KẾT THÚC LOGIC LƯU/TẢI ---
-
-    // Effect chạy đồng hồ
     useEffect(() => {
         if (timeLeft === null || isQuizFinished) return;
         if (timeLeft === 0) {
@@ -113,21 +97,50 @@ const Quiz = () => {
         return () => clearInterval(timerId);
     }, [timeLeft, isQuizFinished, clearQuizState]);
 
-    // Các hàm xử lý sự kiện (giữ nguyên, không thay đổi)
+    // ==========================================================
+    // ## HÀM ĐƯỢC CẬP NHẬT LOGIC MỚI ##
+    // ==========================================================
     const handleAnswerSelect = (answerId) => {
-        if (!isSubmitted) setSelectedAnswerId(answerId);
+        if (isSubmitted) return;
+        const limit = questions[currentQuestionIndex].correctAnswerCount;
+
+        // Logic cho câu hỏi 1 đáp án không đổi
+        if (limit === 1) {
+            setSelectedAnswerIds([answerId]);
+            return;
+        }
+
+        // Logic cho câu hỏi nhiều đáp án
+        setSelectedAnswerIds(prevSelectedIds => {
+            // Nếu đáp án đã được chọn -> Bỏ chọn
+            if (prevSelectedIds.includes(answerId)) {
+                return prevSelectedIds.filter(id => id !== answerId);
+            }
+
+            // Nếu đã đạt giới hạn -> Loại bỏ cái cũ nhất, thêm cái mới nhất
+            if (prevSelectedIds.length >= limit) {
+                // Dùng slice(1) để tạo mảng mới không chứa phần tử đầu tiên (cũ nhất)
+                const newSelection = prevSelectedIds.slice(1);
+                // Thêm phần tử mới vào cuối
+                return [...newSelection, answerId];
+            }
+
+            // Nếu chưa đạt giới hạn -> Chỉ cần thêm vào
+            return [...prevSelectedIds, answerId];
+        });
     };
+    // ==========================================================
 
     const handleQuestionSubmit = async () => {
-        if (!selectedAnswerId) {
-            alert("Please select an answer!");
+        if (selectedAnswerIds.length === 0) {
+            alert("Please select at least one answer!");
             return;
         }
         const token = localStorage.getItem('token');
         try {
             const response = await axios.post(`http://localhost:9999/api/quiz/check-answer`, {
                 questionId: questions[currentQuestionIndex]._id,
-                answerId: selectedAnswerId
+                answerIds: selectedAnswerIds
             }, { headers: { Authorization: `Bearer ${token}` } });
             
             setAnswerResult(response.data);
@@ -146,7 +159,7 @@ const Quiz = () => {
             clearQuizState();
         } else {
             setIsSubmitted(false);
-            setSelectedAnswerId(null);
+            setSelectedAnswerIds([]);
             setAnswerResult(null);
             setCurrentQuestionIndex(prevIndex => prevIndex + 1);
         }
@@ -154,9 +167,13 @@ const Quiz = () => {
 
     const getAnswerClassName = (answerId) => {
         if (!isSubmitted) return "hover:bg-gray-100";
-        const { correctAnswerId } = answerResult || {};
-        if (answerId === correctAnswerId) return "bg-green-200";
-        if (answerId === selectedAnswerId && answerId !== correctAnswerId) return "bg-red-200";
+        const { correctAnswerIds } = answerResult || {};
+        if (correctAnswerIds && correctAnswerIds.includes(answerId)) {
+            return "bg-green-200";
+        }
+        if (selectedAnswerIds.includes(answerId) && (!correctAnswerIds || !correctAnswerIds.includes(answerId))) {
+            return "bg-red-200";
+        }
         return "";
     };
 
@@ -166,8 +183,6 @@ const Quiz = () => {
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     };
-
-    // ----- GIAO DIỆN RENDER (giữ nguyên, không thay đổi) -----
 
     if (loading) return <div className="p-6 text-center">Loading Quiz...</div>;
     if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
@@ -182,12 +197,10 @@ const Quiz = () => {
                     <p className="text-xl">Your Final Score</p>
                     <p className="text-5xl font-bold my-4 text-blue-600">{finalScore} / {questions.length}</p>
                 </div>
-                <button 
-                    onClick={() => navigate('/student/register-class')}
-                    className="mt-6 w-full bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700"
-                >
-                    Back to Register Class
-                </button>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                    <button onClick={() => navigate('/student/register-class')} className="w-full bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700">Back to Register Class</button>
+                    <button onClick={handleRetakeQuiz} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">Retake Quiz</button>
+                </div>
             </div>
         );
     }
@@ -199,49 +212,56 @@ const Quiz = () => {
         <div className="p-6 max-w-3xl mx-auto">
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h1 className="text-3xl font-bold">{quiz.title}</h1>
-                    <p className="text-lg font-semibold text-gray-700 mt-2">
-                        Question {currentQuestionIndex + 1} of {questions.length}
-                    </p>
+                    <h1 className="text-3xl font-bold">{quiz?.title}</h1>
+                    <p className="text-lg font-semibold text-gray-700 mt-2">Question {currentQuestionIndex + 1} of {questions.length}</p>
                 </div>
-                {timeLeft !== null && (
-                     <div className="text-2xl font-bold text-red-500 bg-red-100 px-4 py-2 rounded-lg">
-                        {formatTime(timeLeft)}
-                    </div>
-                )}
+                {timeLeft !== null && (<div className="text-2xl font-bold text-red-500 bg-red-100 px-4 py-2 rounded-lg">{formatTime(timeLeft)}</div>)}
             </div>
             <div className="p-6 border rounded-lg bg-white shadow-lg">
-                <p className="text-xl font-medium mb-4">{currentQuestion.questionText}</p>
+                <p className="text-xl font-medium mb-2">{currentQuestion.questionText}</p>
+                {currentQuestion.correctAnswerCount > 0 && (<p className="text-sm font-semibold text-blue-600 mb-4">(Choose {currentQuestion.correctAnswerCount} {currentQuestion.correctAnswerCount > 1 ? 'answers' : 'answer'})</p>)}
+                
                 <div className="space-y-3">
-                    {currentQuestion.answers.map(ans => (
-                        <div 
-                            key={ans._id}
-                            onClick={() => handleAnswerSelect(ans._id)}
-                            className={`flex items-center p-3 rounded cursor-pointer border-2 transition-all 
-                                ${selectedAnswerId === ans._id ? 'border-blue-500 bg-blue-50' : 'border-transparent'}
-                                ${getAnswerClassName(ans._id)}
-                            `}
-                        >
-                            <span className="font-bold mr-3">{String.fromCharCode(65 + currentQuestion.answers.indexOf(ans))}.</span>
-                            <span>{ans.answerText}</span>
-                        </div>
-                    ))}
+                    {currentQuestion.answers.map((ans, index) => {
+                        const isSelected = selectedAnswerIds.includes(ans._id);
+                        const isRadio = currentQuestion.correctAnswerCount === 1;
+
+                        return (
+                            <div 
+                                key={ans._id}
+                                onClick={() => handleAnswerSelect(ans._id)}
+                                className={`flex items-center p-3 rounded cursor-pointer border-2 transition-all 
+                                    ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-transparent'}
+                                    ${getAnswerClassName(ans._id)}
+                                `}
+                            >
+                                <div className="flex-shrink-0 mr-4">
+                                    {isRadio ? (
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-600' : 'border-gray-400'}`}>
+                                            {isSelected && <div className="w-3 h-3 bg-blue-600 rounded-full"></div>}
+                                        </div>
+                                    ) : (
+                                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-400'}`}>
+                                            {isSelected && (
+                                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span>
+                                <span>{ans.answerText}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
             <div className="mt-6 text-center">
                 {!isSubmitted ? (
-                    <button 
-                        onClick={handleQuestionSubmit}
-                        disabled={!selectedAnswerId}
-                        className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400"
-                    >
-                        Submit
-                    </button>
+                    <button onClick={handleQuestionSubmit} disabled={selectedAnswerIds.length === 0} className="px-8 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400">Submit</button>
                 ) : (
-                    <button 
-                        onClick={handleNextQuestion}
-                        className="px-8 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
-                    >
+                    <button onClick={handleNextQuestion} className="px-8 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700">
                         {currentQuestionIndex === questions.length - 1 ? 'Show Results' : 'Next Question'}
                     </button>
                 )}
