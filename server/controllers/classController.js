@@ -240,7 +240,7 @@ const getRegisterableClasses = async (req, res) => {
     const { studentId } = req.params;
     //find all classes
     const classes = await Class.find()
-      .populate("courseId", "name")
+      .populate("courseId", "name _id")
       .populate("teachers", "fullName")
       .populate({
         path: "schedule.slot",
@@ -252,6 +252,7 @@ const getRegisterableClasses = async (req, res) => {
     const registerableClasses = classes.map((cls) => ({
       _id: cls._id,
       name: cls.name,
+      courseId: cls.courseId?._id || null,
       courseName: cls.courseId?.name || "N/A",
       teachers: cls.teachers.map((t) => t.fullName).join(", ") || "N/A",
       capacity: cls.capacity,

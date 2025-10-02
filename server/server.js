@@ -16,6 +16,7 @@ const roleRoute = require("./routes/roleRoute");
 const courseRoute = require("./routes/courseRoute");
 const slotRoute = require("./routes/slotRoute");
 const newRoute = require("./routes/newRoute");
+const quizRouter = require('./routes/quizRoute');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -28,6 +29,7 @@ app.use("/api/slots", slotRoute);
 app.use("/api/news", newRoute);
 app.use("/api/rooms", require("./routes/roomRoute"));
 app.use("/api/teacher", require("./routes/teacherRoute"));
+app.use('/api/quiz', quizRouter);
 const studentRoute = require("./routes/studentRoute");
 
 
