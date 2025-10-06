@@ -244,7 +244,6 @@ const getRegisterableClasses = async (req, res) => {
       .populate("courseId", "name")
       .populate("teachers", "fullName")
       .lean();
-    
     console.log('Raw classes data before schedule population:', JSON.stringify(classes, null, 2));
     
     // Manually populate schedule for each class
@@ -281,6 +280,7 @@ const getRegisterableClasses = async (req, res) => {
     const registerableClasses = classes.map((cls) => ({
       _id: cls._id,
       name: cls.name || "N/A",
+      courseId: cls.courseId?._id || null,
       courseName: cls.courseId?.name || "N/A",
       teachers: Array.isArray(cls.teachers) 
         ? cls.teachers.map(t => t?.fullName || "N/A").filter(Boolean).join(", ") 

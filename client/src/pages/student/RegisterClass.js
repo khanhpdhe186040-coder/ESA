@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Ensure you have this package installed 
-
+import { useNavigate } from "react-router-dom";
 const RegisterClass = () => {
   const [classes, setClasses] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [enrolling, setEnrolling] = useState(false);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const token = localStorage.getItem("token");
     const studentId = jwtDecode(token).id;
@@ -28,7 +28,14 @@ const RegisterClass = () => {
     };
     fetchClasses();
   }, []);
-
+  const handleQuizClick = (courseId) => {
+    if (courseId) {
+      navigate(`/student/quiz/${courseId}`); // << Điều hướng đến trang quiz
+    } else {
+      alert("This class has no associated course to start a quiz.");
+    }
+  };
+  
   const handleEnroll = async (classId) => {
     try {
       setEnrolling(true);
@@ -132,13 +139,22 @@ const RegisterClass = () => {
                 </p>
               </div>
               {cls.registered ? (
-                <button
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                  onClick={() => alert(`you are registered for this class`)}
-                >
-                  Enrolled
-                </button>
-              ) : (
+         <>
+         <button
+           className="bg-red-600 text-white px-4 py-2 rounded w-1/2"
+           disabled
+         >
+           Enrolled
+         </button>
+         {/* NÚT QUIZ MỚI */}
+         <button
+           className="bg-green-600 text-white px-4 py-2 rounded w-1/2 hover:bg-green-700"
+           onClick={() => handleQuizClick(cls.courseId)}
+         >
+           Quiz
+         </button>
+       </>           
+          ) : (
                 <button
                   className="left-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                   onClick={() => handleEnroll(cls._id)}
