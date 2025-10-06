@@ -18,6 +18,7 @@ const getAllSchedule = async (req, res) => {
       success: false,
       message: "Internal server error",
       error: error.message,
+
     });
   }
 };
@@ -144,36 +145,48 @@ const getStudentSchedule = async (req, res) => {
       });
     }
 
-    const filteredSchedules = schedules.filter(item =>
-      item.classId?.students?.some(t => t._id.toString() === studentId)
-    ).map(item => ({
-      id: item._id,
-      slot: {
-        id: item.slotId._id,
-        from: item.slotId.from,
-        to: item.slotId.to
-      },
-      room: {
-        id: item.roomId._id,
-        name: item.roomId.name,
-        location: item.roomId.location
-      },
-      class: {
-        id: item.classId._id,
-        name: item.classId.name,
-        course: item.classId.courseId.name,
-        teachers: item.classId.teachers.map(teacher => ({
-          id: teacher._id,
-          name: teacher.fullName
-        })),
-        students: item.classId.students.map(student => ({
-          id: student._id,
-          name: student.fullName
-        }))
-      },
-      // Format date as YYYY-MM-DD
-      date: item.date.toISOString().split('T')[0]
-    }));
+    const filteredSchedules = schedules
+      .filter(item => {
+        // Skip items with missing required data
+        if (!item.classId || !item.slotId) return false;
+        return item.classId.students?.some(t => t._id?.toString() === studentId);
+      })
+      .map(item => {
+        // Safely access properties with null checks
+        const slot = item.slotId ? {
+          id: item.slotId._id,
+          from: item.slotId.from || 'N/A',
+          to: item.slotId.to || 'N/A'
+        } : null;
+
+        const room = item.roomId ? {
+          id: item.roomId._id,
+          name: item.roomId.name || 'N/A',
+          location: item.roomId.location || 'N/A'
+        } : { id: null, name: 'N/A', location: 'N/A' };
+
+        const classInfo = item.classId ? {
+          id: item.classId._id,
+          name: item.classId.name || 'N/A',
+          course: item.classId.courseId?.name || 'N/A',
+          teachers: item.classId.teachers?.map(teacher => ({
+            id: teacher?._id || null,
+            name: teacher?.fullName || 'N/A'
+          })) || [],
+          students: item.classId.students?.map(student => ({
+            id: student?._id || null,
+            name: student?.fullName || 'N/A'
+          })) || []
+        } : null;
+
+        return {
+          id: item._id,
+          slot,
+          room,
+          class: classInfo,
+          date: item.date ? item.date.toISOString().split('T')[0] : 'N/A'
+        };
+      });
 
     res.status(200).json({
       success: true,

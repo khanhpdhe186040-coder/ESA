@@ -7,6 +7,7 @@ const RegisterClass = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -27,6 +28,47 @@ const RegisterClass = () => {
     };
     fetchClasses();
   }, []);
+
+  const handleEnroll = async (classId) => {
+    try {
+      setEnrolling(true);
+      const token = localStorage.getItem("token");
+      
+      console.log('Enrolling in class ID:', classId);
+      
+      console.log('Sending enrollment request for class:', classId);
+      const response = await axios.post(
+        `http://localhost:9999/api/student/register-class/${classId}`,
+        {},  // Empty body since we're getting user from token
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true  // Important for sending cookies if using them
+        }
+      );
+      
+      if (response.data.success) {
+        alert('Successfully enrolled in class!');
+        // Update the UI to show the class as enrolled
+        setClasses(prevClasses => 
+          prevClasses.map(cls => 
+            cls._id === classId 
+              ? { ...cls, registered: true } 
+              : cls
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Enrollment error:', error);
+      console.error('Error response data:', error.response?.data);
+      const errorMessage = error.response?.data?.message || 'Failed to enroll in class';
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -62,7 +104,7 @@ const RegisterClass = () => {
               <div className="mb-4 min-h-[200px]">
                 <h2 className="text-xl font-semibold">{cls.name}</h2>
                 <p>
-                  <strong>Course:</strong> {cls.courseName}
+                  <strong>Course:</strong> {cls.name}
                 </p>
                 <p>
                   <strong>Teachers:</strong> {cls.teachers}
@@ -99,9 +141,10 @@ const RegisterClass = () => {
               ) : (
                 <button
                   className="left-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                  onClick={() => alert(`Enrolled in ${cls.name}`)}
+                  onClick={() => handleEnroll(cls._id)}
+                  disabled={enrolling}
                 >
-                  Enroll
+                  {enrolling ? 'Enrolling...' : 'Enroll'}
                 </button>
               )}
             </div>
