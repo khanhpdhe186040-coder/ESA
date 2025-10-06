@@ -37,6 +37,12 @@ const userSchema = new mongoose.Schema(
       ref: "Role",
       required: true,
     },
+    status: {
+      type: String,
+      required: true,
+      enum: ['active', 'inactive', 'pending'],
+      default: 'pending'
+    }
   },
   {
     timestamps: true,

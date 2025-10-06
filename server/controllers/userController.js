@@ -14,6 +14,7 @@ exports.register = async (req, res, next) => {
       birthday,
       address,
       roleId,
+      status = "pending", // Default status to 'pending' if not provided
     } = req.body;
     const account = await userAccount.findOne({ userName });
     if (account) {
@@ -29,6 +30,7 @@ exports.register = async (req, res, next) => {
       birthday,
       address,
       roleId,
+      status,
     });
 
     const result = await newUser.save();
@@ -50,6 +52,9 @@ exports.login = async (req, res, next) => {
     if (!account) {
       return res.status(401).json({ message: "Invalid username" });
     }
+    if (account.status !== "active") {
+      return res.status(403).json({ message: `Account is ${account.status}` });
+    }
     const isValidPassword = await bcrypt.compare(password, account.password);
     if (!isValidPassword) {
       return res.status(400).json({ message: "Invalid password" });
@@ -60,6 +65,7 @@ exports.login = async (req, res, next) => {
         id: account._id,
         userName: account.userName,
         roleId: account.roleId,
+        status: account.status,
       },
       process.env.JWT_KEY,
       {
@@ -70,7 +76,6 @@ exports.login = async (req, res, next) => {
     res.status(200).json({
       message: "Login successfully",
       accessToken: accessToken,
-      // roleId: account.roleId || "NA",
     });
   } catch (error) {
     next(error);
@@ -139,6 +144,11 @@ exports.updateUserById = async (req, res) => {
       updateData.password = hashedPassword;
     } else {
       delete updateData.password;
+    }
+
+    // Validate status if provided
+    if (updateData.status && !['active', 'inactive', 'pending'].includes(updateData.status)) {
+      return res.status(400).json({ message: "Invalid status value" });
     }
 
     const updatedUser = await userAccount
