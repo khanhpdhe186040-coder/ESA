@@ -11,9 +11,11 @@ import {
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const token = localStorage.getItem("token"); // Kiểm tra xem người dùng đã đăng nhập chưa
 
-  const menuItems = [
+  const studentMenuItems = [
     // { name: "Student Panel", icon: <FaHome />, path: "/student" },
+    { name: "Home", icon: <FaHome />, path: "/" },
     { name: "My Classes", icon: <FaBookOpen />, path: "/student/my-classes" },
     { name: "Schedule", icon: <FaCalendarAlt />, path: "/student/schedule" },
     {
@@ -23,10 +25,17 @@ const Sidebar = () => {
     },
     { name: "Grade", icon: <FaGraduationCap />, path: "/student/grade" },
   ];
+  // Menu cho Guest (chưa đăng nhập) - chỉ có trang Home
+  const guestMenuItems = [
+      { name: "Home", icon: <FaHome />, path: "/" },
+  ];
+  
+  // Quyết định menu nào sẽ được hiển thị
+  const menuItems = token ? studentMenuItems : guestMenuItems;
 
   return (
     <div
-      className={`bg-blue-900 text-white h-screen p-4 flex flex-col transition-all duration-300 ${
+      className={`bg-blue-900 text-white min-h-screen p-4 flex flex-col transition-all duration-300 ${
         isOpen ? "w-60" : "w-16"
       } md:w-60`}
     >
@@ -36,7 +45,9 @@ const Sidebar = () => {
       >
         {isOpen ? "✖" : "☰"}
       </button>
-      <h1>Student Panel</h1>
+       <h1 className="text-2xl font-bold mb-4">
+        {token ? 'Student Panel' : 'Menu'}
+      </h1>
       <ul className="flex flex-col gap-2">
         {menuItems.map((item) => (
           <li key={item.path}>

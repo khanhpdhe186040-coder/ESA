@@ -21,6 +21,8 @@ import StudentGrades from "./pages/student/Grades";
 import GradeDetails from "./pages/student/GradeDetails";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import Quiz from './pages/student/Quiz';
+import HomePage from './pages/HomePage';
+import CourseDetailPage from './pages/CourseDetailPage';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -34,6 +36,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        
         <Route path="/login" element={<LoginPage />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
@@ -102,8 +105,11 @@ function App() {
           }
         />
 
+
+
         {/* Student Layout */}
         <Route path="/student" element={<StudentLayout />}>
+          
           <Route path="schedule" element={<StudentSchedule />} />
           <Route path="my-classes" element={<MyClasses />} />
           <Route path="register-class" element={<RegisterClass />} />
@@ -113,6 +119,11 @@ function App() {
           <Route path="grade/:classId" element={<GradeDetails />} />
           <Route path="/student/register-class" element={<RegisterClass />} />
           <Route path="/student/quiz/:courseId" element={<Quiz />} />
+          
+        </Route>
+        <Route element={<StudentLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/course/:courseId" element={<CourseDetailPage />} />
         </Route>
       </Routes>
     </Router>
