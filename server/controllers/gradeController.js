@@ -132,8 +132,8 @@ const getAllGradesOfAStudentInAllClasses = async (req, res) => {
       .lean();
 
     if (!grades || grades.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "No grades found for this student",
       });
     }

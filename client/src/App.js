@@ -20,7 +20,7 @@ import ClassDetails from "./pages/student/ClassDetails";
 import StudentGrades from "./pages/student/Grades";
 import GradeDetails from "./pages/student/GradeDetails";
 import StudentDashboard from "./pages/student/StudentDashboard";
-
+import Quiz from './pages/student/Quiz';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -149,6 +149,8 @@ function App() {
 
           <Route path="grade" element={<StudentGrades />} />
           <Route path="grade/:classId" element={<GradeDetails />} />
+          <Route path="/student/register-class" element={<RegisterClass />} />
+          <Route path="/student/quiz/:courseId" element={<Quiz />} />
         </Route>
         {/* Teacher Layout additions */}
         <Route path="/teacher" element={<TeacherLayout />}>

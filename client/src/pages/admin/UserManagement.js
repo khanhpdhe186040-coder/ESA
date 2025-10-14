@@ -10,7 +10,8 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all"); // mã r1,r2 hoặc all
+  const [roleFilter, setRoleFilter] = useState("all"); // mã r1, r2 hoặc all
+  const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive, pending
 
   const [showAdd, setShowAdd] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -56,7 +57,8 @@ export default function UserManagement() {
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roleId.id === roleFilter;
-    return matchSearch && matchRole;
+    const matchStatus = statusFilter === "all" || u.status === statusFilter;
+    return matchSearch && matchRole && matchStatus;
   });
 
   /* ---------------- JSX ---------------- */
@@ -77,7 +79,7 @@ export default function UserManagement() {
 
         {/* Filters */}
         <div className="bg-white p-6 rounded-xl shadow mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* search */}
             <div>
               <label className="block text-sm font-medium mb-1">Search</label>
@@ -109,12 +111,27 @@ export default function UserManagement() {
                 ))}
               </select>
             </div>
+            {/* status */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border rounded px-3 py-2 w-full"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
             {/* clear */}
             <div className="flex justify-end items-end">
               <button
                 onClick={() => {
                   setSearch("");
                   setRoleFilter("all");
+                  setStatusFilter("all");
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 border bg-gray-100 rounded hover:bg-gray-200"
               >
@@ -135,6 +152,7 @@ export default function UserManagement() {
                 "Email",
                 "Phone",
                 "Role",
+                "Status",
                 "DOB",
                 "Actions",
               ].map((h) => (
@@ -152,6 +170,19 @@ export default function UserManagement() {
                 <td className="py-4 px-4">{u.email}</td>
                 <td className="py-4 px-4">{u.number}</td>
                 <td className="py-4 px-4 capitalize">{u.roleId.name}</td>
+                <td className="py-4 px-4">
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-sm capitalize ${
+                      u.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : u.status === "inactive"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {u.status}
+                  </span>
+                </td>
                 <td className="py-4 px-4">
                   {new Date(u.birthday).toLocaleDateString("vi-VN")}
                 </td>
@@ -189,7 +220,7 @@ export default function UserManagement() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-400">
+                <td colSpan={8} className="py-8 text-center text-gray-400">
                   No users found.
                 </td>
               </tr>

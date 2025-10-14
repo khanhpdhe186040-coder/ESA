@@ -239,30 +239,69 @@ const getRegisterableClasses = async (req, res) => {
   try {
     const { studentId } = req.params;
     //find all classes
-    const classes = await Class.find()
+    // First, get the raw classes without populating schedule
+    let classes = await Class.find()
       .populate("courseId", "name")
       .populate("teachers", "fullName")
-      .populate({
-        path: "schedule.slot",
-        model: "Slot",
-        select: "from to",
-      })
       .lean();
+    console.log('Raw classes data before schedule population:', JSON.stringify(classes, null, 2));
+    
+    // Manually populate schedule for each class
+    classes = await Promise.all(classes.map(async (cls) => {
+      // Handle case where schedule might be in Schedule or schedule
+      const scheduleData = cls.Schedule || cls.schedule || [];
+      
+      if (scheduleData.length > 0) {
+        // Manually populate slot and room for each schedule item
+        const populatedSchedule = await Promise.all(scheduleData.map(async (s) => {
+          const populated = { ...s };
+          
+          if (s.slot) {
+            const slot = await mongoose.model('Slot').findById(s.slot).select('from to').lean();
+            populated.slot = slot || { from: 'N/A', to: 'N/A' };
+          }
+          
+          if (s.room) {
+            const room = await mongoose.model('Room').findById(s.room).select('name').lean();
+            populated.room = room || { name: 'N/A' };
+          }
+          
+          return populated;
+        }));
+        
+        return { ...cls, schedule: populatedSchedule };
+      }
+      
+      return { ...cls, schedule: [] };
+    }));
+    
+    console.log('Classes after manual population:', JSON.stringify(classes, null, 2));
 
     const registerableClasses = classes.map((cls) => ({
       _id: cls._id,
-      name: cls.name,
+      name: cls.name || "N/A",
+      courseId: cls.courseId?._id || null,
       courseName: cls.courseId?.name || "N/A",
-      teachers: cls.teachers.map((t) => t.fullName).join(", ") || "N/A",
-      capacity: cls.capacity,
-      schedule: cls.schedule.map((s) => ({
-        weekday: s.weekday,
-        from: s.slot?.from || "N/A",
-        to: s.slot?.to || "N/A",
-      })),
-      studentsCount: cls.students.length,
-      status: cls.status,
-      registered: cls.students.toString().includes(studentId),
+      teachers: Array.isArray(cls.teachers) 
+        ? cls.teachers.map(t => t?.fullName || "N/A").filter(Boolean).join(", ") 
+        : "N/A",
+      capacity: cls.capacity || 0,
+      schedule: Array.isArray(cls.schedule) && cls.schedule.length > 0  // Using lowercase to match schema
+        ? cls.schedule.map(s => {  // Using lowercase to match schema
+                    console.log('Processing schedule item:', JSON.stringify(s, null, 2));
+            return {
+              weekday: s?.weekday || "N/A",
+              from: s?.slot?.from || "N/A",
+              to: s?.slot?.to || "N/A",
+              room: s?.room?.name || "N/A"
+            };
+          })
+        : [],
+      studentsCount: Array.isArray(cls.students) ? cls.students.length : 0,
+      status: cls.status || "inactive",
+      registered: Array.isArray(cls.students) 
+        ? cls.students.some(id => id.toString() === studentId) 
+        : false,
     }));
 
     res.status(200).json(registerableClasses);
@@ -278,13 +317,25 @@ const getRegisterableClasses = async (req, res) => {
 
 const enrollInClass = async (req, res) => {
   try {
+    console.log('Request user:', req.user); // Debug log
+    console.log('Request params:', req.params); // Debug log
+    
     const mongoUserId = req.user?.id; // JWT user _id
-    const classId = req.params.id;
+    const classId = req.params.id; // Now matches the route parameter
+    
+    console.log('Extracted IDs - User:', mongoUserId, 'Class:', classId); // Debug log
 
-    if (
-      !mongoose.Types.ObjectId.isValid(mongoUserId) ||
-      !mongoose.Types.ObjectId.isValid(classId)
-    ) {
+    // Validate IDs
+    const isUserIdValid = mongoose.Types.ObjectId.isValid(mongoUserId);
+    const isClassIdValid = mongoose.Types.ObjectId.isValid(classId);
+    
+    if (!isUserIdValid || !isClassIdValid) {
+      console.error('Invalid IDs:', { 
+        userId: mongoUserId, 
+        classId,
+        isUserIdValid,
+        isClassIdValid 
+      });
       return res.status(400).json({
         success: false,
         message: "Invalid ID(s)",

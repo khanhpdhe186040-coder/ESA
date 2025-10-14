@@ -26,7 +26,11 @@ router.get("/my-classes/:classId",  getClassesByUserId);
 
 router.get("/:studentId/registerable-classes",  getRegisterableClasses);
 
-router.post("/register-class/:classid",  enrollInClass);
+// Using :id to match the controller's expectation
+router.post("/register-class/:id", jwtAuth, enrollInClass);
 
 router.delete("/register-class/:classid",  unenrollFromClass);
+
+
+
 module.exports = router;

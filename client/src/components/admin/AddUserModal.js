@@ -14,8 +14,9 @@ export default function AddUserModal({ onClose, onCreate }) {
     birthday: "",
     address: "",
     roleId: "",
+    status: "pending", // Default status
   });
-  const [roles, setRoles] = useState([]); // [{ _id, id:"r1", name:"Admin" }]
+  const [roles, setRoles] = useState([]);
   const [errors, setErrors] = useState({});
 
   /* ---------------- Fetch roles ---------------- */
@@ -67,6 +68,11 @@ export default function AddUserModal({ onClose, onCreate }) {
 
     if (!form.roleId) {
       newErrors.roleId = "Role is required";
+      valid = false;
+    }
+
+    if (!form.status) {
+      newErrors.status = "Status is required";
       valid = false;
     }
 
@@ -174,26 +180,43 @@ export default function AddUserModal({ onClose, onCreate }) {
             </div>
 
             {/* role */}
-            <div className="md:col-span-2 flex justify-center">
-              <div className="w-full md:w-1/2">
-                <label className="block font-medium">Role</label>
-                <select
-                  name="roleId"
-                  className="w-full px-3 py-2 mt-1 border rounded"
-                  value={form.roleId}
-                  onChange={handleChange}
-                >
-                  <option value="">-- Select Role --</option>
-                  {roles.map((r) => (
-                    <option key={r._id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.roleId && (
-                  <p className="text-red-600 text-sm mt-1">{errors.roleId}</p>
-                )}
-              </div>
+            <div>
+              <label className="block font-medium">Role</label>
+              <select
+                name="roleId"
+                className="w-full px-3 py-2 mt-1 border rounded"
+                value={form.roleId}
+                onChange={handleChange}
+              >
+                <option value="">-- Select Role --</option>
+                {roles.map((r) => (
+                  <option key={r._id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              {errors.roleId && (
+                <p className="text-red-600 text-sm mt-1">{errors.roleId}</p>
+              )}
+            </div>
+
+            {/* status */}
+            <div>
+              <label className="block font-medium">Status</label>
+              <select
+                name="status"
+                className="w-full px-3 py-2 mt-1 border rounded"
+                value={form.status}
+                onChange={handleChange}
+              >
+                <option value="">-- Select Status --</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
+              {errors.status && (
+                <p className="text-red-600 text-sm mt-1">{errors.status}</p>
+              )}
             </div>
           </div>
 
