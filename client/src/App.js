@@ -8,7 +8,7 @@ import TeachingSchedule from "./pages/teacher/TeachingSchedule";
 import TeachingClass from "./pages/teacher/TeachingClass";
 import TeachingClassDetails from "./pages/teacher/TeachingClassDetails";
 import TeachingGradeDetails from "./pages/teacher/TeachingGradeDetails";
-
+import QuizManagementPage from './pages/teacher/QuizManagement'; 
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -51,6 +51,7 @@ function App() {
             path="grades/class/:classId/student/:studentId"
             element={<TeachingGradeDetails />}
           />
+          <Route path="quizzes" element={<QuizManagementPage />} />
         </Route>
 
         {/* Admin */}

@@ -145,3 +145,93 @@ exports.checkAnswer = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// ## CÁC HÀM CHO TEACHER  ##
+// ==========================================================
+
+// Lấy TẤT CẢ các quiz để hiển thị cho teacher
+exports.getQuizzesByTeacher = async (req, res) => {
+    try {
+        // SỬA ĐỔI: Gỡ bỏ điều kiện { teacherId: req.user.id } để lấy tất cả quiz
+        const quizzes = await Quiz.find({}).populate('courseId', 'name');
+        res.status(200).json({ success: true, data: quizzes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Tạo một quiz mới (giữ nguyên, vì khi tạo mới vẫn cần gán teacherId của người tạo)
+exports.createQuiz = async (req, res) => {
+    try {
+        const { title, description, courseId, timeLimit } = req.body;
+        const teacherId = req.user.id; // Lấy từ token
+
+        const existingQuiz = await Quiz.findOne({ courseId });
+        if (existingQuiz) {
+            return res.status(400).json({ success: false, message: 'This course already has a quiz.' });
+        }
+
+        const newQuiz = new Quiz({ title, description, courseId, timeLimit, teacherId });
+        await newQuiz.save();
+        res.status(201).json({ success: true, message: 'Quiz created successfully', data: newQuiz });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Lấy chi tiết 1 quiz (bất kỳ)
+exports.getQuizDetails = async (req, res) => {
+    try {
+        // SỬA ĐỔI: Gỡ bỏ điều kiện teacherId, chỉ cần tìm theo ID của quiz
+        const quiz = await Quiz.findById(req.params.id);
+        if (!quiz) {
+            return res.status(404).json({ success: false, message: 'Quiz not found.' });
+        }
+        res.status(200).json({ success: true, data: quiz });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// Cập nhật một quiz (bất kỳ)
+exports.updateQuiz = async (req, res) => {
+    try {
+        const { title, description, courseId, timeLimit } = req.body;
+
+        // SỬA ĐỔI: Gỡ bỏ điều kiện teacherId, chỉ cần tìm và cập nhật theo ID
+        const updatedQuiz = await Quiz.findByIdAndUpdate(
+            req.params.id,
+            { title, description, courseId, timeLimit },
+            { new: true }
+        );
+
+        if (!updatedQuiz) {
+            return res.status(404).json({ success: false, message: 'Quiz not found.' });
+        }
+        res.status(200).json({ success: true, message: 'Quiz updated successfully', data: updatedQuiz });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Xóa một quiz (bất kỳ)
+exports.deleteQuiz = async (req, res) => {
+    try {
+        // SỬA ĐỔI: Gỡ bỏ điều kiện teacherId, chỉ cần tìm và xóa theo ID
+        const quiz = await Quiz.findByIdAndDelete(req.params.id);
+
+        if (!quiz) {
+            return res.status(404).json({ success: false, message: 'Quiz not found.' });
+        }
+
+        const questions = await Question.find({ quizId: quiz._id }).select('_id');
+        const questionIds = questions.map(q => q._id);
+
+        await Question.deleteMany({ quizId: quiz._id });
+        await Answer.deleteMany({ questionId: { $in: questionIds } });
+        
+        res.status(200).json({ success: true, message: 'Quiz deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
