@@ -9,6 +9,9 @@ import TeachingClass from "./pages/teacher/TeachingClass";
 import TeachingClassDetails from "./pages/teacher/TeachingClassDetails";
 import TeachingGradeDetails from "./pages/teacher/TeachingGradeDetails";
 import QuizManagementPage from './pages/teacher/QuizManagement'; 
+import QuizForm from './pages/teacher/QuizForm';
+import QuestionManagementPage from './pages/teacher/QuestionManagement';
+import QuestionForm from "./pages/teacher/QuestionForm";
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -51,8 +54,18 @@ function App() {
             path="grades/class/:classId/student/:studentId"
             element={<TeachingGradeDetails />}
           />
+
+        {/* Quản lý danh sách các Quiz */}
           <Route path="quizzes" element={<QuizManagementPage />} />
+          <Route path="quizzes/new" element={<QuizForm />} /> 
+          <Route path="quizzes/edit/:quizId" element={<QuizForm />} />
+          <Route path="quizzes/:quizId/questions" element={<QuestionManagementPage />} />
+          
+          {/* Quản lý các Question */}
+          <Route path="quizzes/:quizId/questions/new" element={<QuestionForm />} />
+          <Route path="quizzes/questions/edit/:questionId" element={<QuestionForm />} />
         </Route>
+      
 
         {/* Admin */}
         <Route

@@ -45,10 +45,10 @@ const QuizManagementPage = () => {
         <div className="container mx-auto p-4">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Quiz Management</h1>
-                {/* Tạm thời comment nút Add New, sẽ làm ở bước sau */}
-                {/* <Link to="/teacher/quizzes/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+               
+              <Link to="/teacher/quizzes/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                     Create New Quiz
-                </Link> */}
+                </Link>
             </div>
             
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -66,8 +66,12 @@ const QuizManagementPage = () => {
                                 <td className="px-5 py-4">{quiz.title}</td>
                                 <td className="px-5 py-4">{quiz.courseId?.name || 'N/A'}</td>
                                 <td className="px-5 py-4">
-                                    <button className="text-green-600 hover:underline mr-4">Manage Questions</button>
-                                    <button className="text-indigo-600 hover:underline mr-4">Edit</button>
+                                    <Link to={`/teacher/quizzes/${quiz._id}/questions`} className="text-green-600 hover:underline mr-4">
+                                        Manage Questions
+                                    </Link>
+                                    <Link to={`/teacher/quizzes/edit/${quiz._id}`} className="text-indigo-600 hover:underline mr-4">
+                                        Edit
+                                    </Link>
                                     <button onClick={() => handleDelete(quiz._id)} className="text-red-600 hover:underline">Delete</button>
                                 </td>
                             </tr>
