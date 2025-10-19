@@ -5,7 +5,8 @@ import {
   FaCalendarAlt,
   FaClipboardList,
   FaGraduationCap,
-  FaBookOpen
+  FaBookOpen,
+  FaUserCircle
 } from "react-icons/fa";
 
 const Sidebar = () => {
@@ -14,6 +15,7 @@ const Sidebar = () => {
 
   const menuItems = [
     // { name: "Student Panel", icon: <FaHome />, path: "/student" },
+    { name: "Profile", icon: <FaUserCircle />, path: "/student/profile" },
     { name: "My Classes", icon: <FaBookOpen />, path: "/student/my-classes" },
     { name: "Schedule", icon: <FaCalendarAlt />, path: "/student/schedule" },
     {

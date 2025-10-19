@@ -8,11 +8,11 @@ import TeachingSchedule from "./pages/teacher/TeachingSchedule";
 import TeachingClass from "./pages/teacher/TeachingClass";
 import TeachingClassDetails from "./pages/teacher/TeachingClassDetails";
 import TeachingGradeDetails from "./pages/teacher/TeachingGradeDetails";
-
+import TeacherProfile from "./pages/teacher/TeacherProfile";
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
-
+import StudentProfile from "./pages/student/StudentProfile";
 import RegisterClass from "./pages/student/RegisterClass";
 import MyClasses from "./pages/student/MyClasses";
 import ClassDetails from "./pages/student/ClassDetails";
@@ -30,6 +30,7 @@ import LoginPage from "./Login/Login";
 import ProtectedRoute from "./Login/ProtectedRoute";
 import NewsAdd from "./components/general/NewsAdd";
 import AdminLayout from "./layouts/AdminLayout";
+import AdminProfile from "./pages/admin/AdminProfile";
 function App() {
   return (
     <Router>
@@ -37,6 +38,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
+          <Route path="profile" element={<TeacherProfile />} />
           <Route path="courses" element={<Courses />} />
           <Route path="schedule" element={<TeachingSchedule />} />
           <Route path="classes" element={<TeachingClass />} />
@@ -101,14 +103,21 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/profile"
+          element={
+            <ProtectedRoute>
+              <AdminProfile />
+            </ProtectedRoute>
+          }
+        />
         {/* Student Layout */}
         <Route path="/student" element={<StudentLayout />}>
           <Route path="schedule" element={<StudentSchedule />} />
           <Route path="my-classes" element={<MyClasses />} />
           <Route path="register-class" element={<RegisterClass />} />
           <Route path="my-classes/:classId" element={<ClassDetails />} />
-
+          <Route path="profile" element={<StudentProfile />}/>
           <Route path="grade" element={<StudentGrades />} />
           <Route path="grade/:classId" element={<GradeDetails />} />
           <Route path="/student/register-class" element={<RegisterClass />} />
