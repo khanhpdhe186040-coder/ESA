@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/student/Sidebar";
 import Navbar from "../components/student/Navbar";
+import ChatWidget from "../components/chat/ChatWidget";
 
 const StudentLayout = () => {
   return (
@@ -13,6 +14,7 @@ const StudentLayout = () => {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 };

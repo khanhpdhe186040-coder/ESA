@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import Navbar from "../components/admin/Navbar";
+import ChatWidget from "../components/chat/ChatWidget";
 
 export default function AdminLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -23,6 +24,7 @@ export default function AdminLayout({ children }) {
           )}
         </div>
       </main>
+      <ChatWidget />
     </div>
   );
 }

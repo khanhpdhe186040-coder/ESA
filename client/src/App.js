@@ -1,5 +1,6 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { SocketProvider } from "./contexts/SocketContext";
 
 // Teacher
 import TeacherLayout from "./layouts/TeacherLayout";
@@ -34,8 +35,9 @@ import NewsList from "./components/general/NewsList";
 import NewsDetail from "./components/general/NewsDetail";
 function App() {
   return (
-    <Router>
-      <Routes>
+    <SocketProvider>
+      <Router>
+        <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         {/* Teacher Layout */}
@@ -158,8 +160,9 @@ function App() {
           <Route path="news/:id" element={<NewsDetail />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </SocketProvider>
   );
 }
 
