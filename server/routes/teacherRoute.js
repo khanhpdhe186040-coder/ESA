@@ -12,7 +12,7 @@ const {
     addGradeToAStudent,
     updateGradesOfAStudent
 } = require("../controllers/teacherController");
-const authTeacher = require("../middlewares/authTeacher");
+// const authTeacher = require("../middlewares/authTeacher");
 
 // Get teaching schedule for a specific teacher
 router.get("/:teacherId/schedules", getTeachingSchedule);
@@ -43,5 +43,7 @@ router.post("/:teacherId/classes/:classId/grades/student/:studentId", addGradeTo
 
 // Update grades for a specific student in a class
 router.patch("/grades/:gradeId", updateGradesOfAStudent);
+
+// Get schedule by class
 
 module.exports = router; 

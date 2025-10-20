@@ -1,9 +1,5 @@
 const Schedule = require("../models/Schedule");
-const Room = require("../models/Room");
-const Class = require("../models/Class");
-const Slot = require("../models/Slot");
-const User = require("../models/User");
-const mongoose = require("mongoose");
+
 const getAllSchedule = async (req, res) => {
   try {
     const schedule = await Schedule.find({});
@@ -203,10 +199,53 @@ const getStudentSchedule = async (req, res) => {
   }
 };
 
+const getScheduleByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const schedules = await Schedule.find({ classId })
+      .populate('slotId', 'from to')
+      .populate('roomId', 'name')
+      .sort({ date: 1 });
+    
+    // Format the response with only required fields
+    const formattedSchedules = schedules.map(schedule => {
+      // Format date as dd/MM/yyyy
+      const date = new Date(schedule.date);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
+      
+      return {
+        date: formattedDate,
+        slot: {
+          from: schedule.slotId?.from || 'N/A',
+          to: schedule.slotId?.to || 'N/A'
+        },
+        room: schedule.roomId?.name || 'N/A'
+      };
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: "Schedule retrieved successfully",
+      data: formattedSchedules,
+    });
+  } catch (error) {
+    console.error("Error fetching schedule:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllSchedule,
   createSchedule,
   updateSchedule,
   deleteSchedule,
   getStudentSchedule,
+  getScheduleByClass
 };

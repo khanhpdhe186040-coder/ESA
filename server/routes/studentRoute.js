@@ -32,5 +32,4 @@ router.post("/register-class/:id", jwtAuth, enrollInClass);
 router.delete("/register-class/:classid",  unenrollFromClass);
 
 
-
 module.exports = router;
