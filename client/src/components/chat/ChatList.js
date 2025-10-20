@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { useSocket } from '../../contexts/SocketContext';
 
 const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
   const [chats, setChats] = useState([]);
@@ -9,6 +10,7 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
+  const { socket } = useSocket();
 
   useEffect(() => {
     if (currentUserId) {
@@ -33,6 +35,38 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
       setLoading(false);
     }
   };
+
+  // Listen for new messages in real-time and update lastMessage in the list
+  useEffect(() => {
+    if (!socket || !currentUserId) return;
+
+    const handleNewMessage = (data) => {
+      // Update the chat's last message and bubble it to the top
+      setChats((prevChats) => {
+        const index = prevChats.findIndex((c) => c._id === data.chatId);
+        const newLastMessage = {
+          content: data.message,
+          createdAt: data.timestamp,
+          sender: { _id: data.senderId }
+        };
+
+        if (index !== -1) {
+          const updatedChat = { ...prevChats[index], lastMessage: newLastMessage };
+          const remaining = prevChats.filter((_, i) => i !== index);
+          return [updatedChat, ...remaining];
+        }
+
+        // If chat not found (e.g., newly created), refetch the list
+        fetchChats();
+        return prevChats;
+      });
+    };
+
+    socket.on('new-message', handleNewMessage);
+    return () => {
+      socket.off('new-message', handleNewMessage);
+    };
+  }, [socket, currentUserId]);
 
   const searchUsers = async (query) => {
     if (query.trim().length < 2) {
