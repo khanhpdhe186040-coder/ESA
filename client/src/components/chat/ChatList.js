@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { useSocket } from '../../contexts/SocketContext';
 
 const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
   const [chats, setChats] = useState([]);
@@ -9,12 +10,61 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
+  const { socket } = useSocket();
 
   useEffect(() => {
     if (currentUserId) {
       fetchChats();
     }
   }, [currentUserId]);
+
+  // Auto-refresh every 3 seconds
+  useEffect(() => {
+    if (currentUserId) {
+      const interval = setInterval(() => {
+        fetchChatsSilently();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentUserId]);
+
+  // Socket event listener for real-time updates
+  useEffect(() => {
+    if (socket) {
+      socket.on('new-message', (data) => {
+        // Update the lastMessage for the corresponding chat
+        setChats(prevChats => {
+          const updatedChats = prevChats.map(chat => {
+            if (chat._id === data.chatId) {
+              return {
+                ...chat,
+                lastMessage: {
+                  content: data.message,
+                  createdAt: data.timestamp
+                }
+              };
+            }
+            return chat;
+          });
+          
+          // Sort chats by most recent message
+          return updatedChats.sort((a, b) => {
+            if (!a.lastMessage && !b.lastMessage) return 0;
+            if (!a.lastMessage) return 1;
+            if (!b.lastMessage) return -1;
+            return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+          });
+        });
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('new-message');
+      }
+    };
+  }, [socket, currentUserId]);
 
   const fetchChats = async () => {
     try {
@@ -24,13 +74,41 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
-        setChats(response.data.data);
+        // Sort chats by most recent message
+        const sortedChats = response.data.data.sort((a, b) => {
+          if (!a.lastMessage && !b.lastMessage) return 0;
+          if (!a.lastMessage) return 1;
+          if (!b.lastMessage) return -1;
+          return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+        setChats(sortedChats);
       }
     } catch (err) {
       setError('Failed to load chats');
       console.error('Error fetching chats:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChatsSilently = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:9999/api/chat/user/${currentUserId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        // Sort chats by most recent message
+        const sortedChats = response.data.data.sort((a, b) => {
+          if (!a.lastMessage && !b.lastMessage) return 0;
+          if (!a.lastMessage) return 1;
+          if (!b.lastMessage) return -1;
+          return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+        setChats(sortedChats);
+      }
+    } catch (err) {
+      console.error('Error fetching chats silently:', err);
     }
   };
 
