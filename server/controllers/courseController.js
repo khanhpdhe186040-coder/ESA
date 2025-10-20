@@ -17,6 +17,33 @@ const getAllCourses = async (req, res) => {
     });
   }
 };
+// GET /api/courses/:id
+const getCourseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await Course.findById(id);
+
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Course retrieved successfully",
+      data: course,
+    });
+  } catch (error) {
+    console.error("Error getting course by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+// ==========================================================
 
 // POST /api/courses/add
 const createCourse = async (req, res) => {
@@ -107,4 +134,4 @@ const deleteCourse = async (req, res) => {
   }
 };
 
-module.exports = { getAllCourses, createCourse, updateCourse, deleteCourse };
+module.exports = { getAllCourses, createCourse, updateCourse, deleteCourse,  getCourseById};

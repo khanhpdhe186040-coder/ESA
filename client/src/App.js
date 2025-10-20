@@ -9,7 +9,10 @@ import TeachingSchedule from "./pages/teacher/TeachingSchedule";
 import TeachingClass from "./pages/teacher/TeachingClass";
 import TeachingClassDetails from "./pages/teacher/TeachingClassDetails";
 import TeachingGradeDetails from "./pages/teacher/TeachingGradeDetails";
-
+import QuizManagementPage from './pages/teacher/QuizManagement'; 
+import QuizForm from './pages/teacher/QuizForm';
+import QuestionManagementPage from './pages/teacher/QuestionManagement';
+import QuestionForm from "./pages/teacher/QuestionForm";
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -22,6 +25,8 @@ import StudentGrades from "./pages/student/Grades";
 import GradeDetails from "./pages/student/GradeDetails";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import Quiz from './pages/student/Quiz';
+import HomePage from './pages/HomePage';
+import CourseDetailPage from './pages/CourseDetailPage';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -33,12 +38,14 @@ import NewsAdd from "./components/admin/NewsAdd";
 import AdminLayout from "./layouts/AdminLayout";
 import NewsList from "./components/general/NewsList";
 import NewsDetail from "./components/general/NewsDetail";
+//Home
+import HomeLayout from "./layouts/HomeLayout";
 function App() {
   return (
     <SocketProvider>
       <Router>
         <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
         <Route path="/login" element={<LoginPage />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
@@ -53,7 +60,18 @@ function App() {
             path="grades/class/:classId/student/:studentId"
             element={<TeachingGradeDetails />}
           />
+
+        {/* Quản lý danh sách các Quiz */}
+          <Route path="quizzes" element={<QuizManagementPage />} />
+          <Route path="quizzes/new" element={<QuizForm />} /> 
+          <Route path="quizzes/edit/:quizId" element={<QuizForm />} />
+          <Route path="quizzes/:quizId/questions" element={<QuestionManagementPage />} />
+          
+          {/* Quản lý các Question */}
+          <Route path="quizzes/:quizId/questions/new" element={<QuestionForm />} />
+          <Route path="quizzes/questions/edit/:questionId" element={<QuestionForm />} />
         </Route>
+      
 
         {/* Admin */}
         <Route
@@ -140,6 +158,8 @@ function App() {
           }
         />
 
+
+
         {/* Student Layout */}
         <Route path="/student" element={<StudentLayout />}>
           <Route path="news" element={<NewsList />} />
@@ -153,6 +173,11 @@ function App() {
           <Route path="grade/:classId" element={<GradeDetails />} />
           <Route path="/student/register-class" element={<RegisterClass />} />
           <Route path="/student/quiz/:courseId" element={<Quiz />} />
+          
+        </Route>
+        <Route element={<HomeLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/course/:courseId" element={<CourseDetailPage />} />
         </Route>
         {/* Teacher Layout additions */}
         <Route path="/teacher" element={<TeacherLayout />}>

@@ -71,7 +71,7 @@ const LoginPage = () => {
               navigate('/teacher');
               break;
             case "r3":
-              navigate('/student');
+              navigate('/student/my-classes');
               break;
             default:
               navigate('/login');

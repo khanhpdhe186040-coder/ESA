@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Calendar, GraduationCap, BookOpen, Newspaper } from "lucide-react";
+import { Calendar, GraduationCap, BookOpen, Newspaper, HelpCircle } from "lucide-react";
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -7,7 +7,8 @@ export default function Sidebar() {
     { icon: <Calendar size={20} />, text: "Teaching Schedule", link: "/teacher/schedule" },
     { icon: <GraduationCap size={20} />, text: "Teaching Classes", link: "/teacher/classes" },
     { icon: <BookOpen size={20} />, text: "Courses", link: "/teacher/courses" },
-    { icon: <Newspaper size={20} />, text: "News", link: "/teacher/news" }
+    { icon: <Newspaper size={20} />, text: "News", link: "/teacher/news" },
+    { icon: <HelpCircle size={20} />, text: "Quiz Management", link: "/teacher/quizzes" }
   ];
 
   return (

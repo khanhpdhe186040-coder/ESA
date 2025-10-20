@@ -7,9 +7,12 @@ const {
   createCourse,
   updateCourse,
   deleteCourse,
+  getCourseById,
 } = require("../controllers/courseController");
 
 router.get("/", getAllCourses);
+
+router.get("/:id", getCourseById);
 
 router.post("/add",authAdmin, createCourse);
 

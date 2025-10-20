@@ -8,7 +8,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        navigate("/login");
+        navigate("/");
     };
 
     const token = localStorage.getItem("token");
