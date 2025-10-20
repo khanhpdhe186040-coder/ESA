@@ -22,8 +22,8 @@ export default function AdminSidebar() {
     },
     {
       icon: <Newspaper size={20} />,
-      text: "Manage News",
-      link: "/admin/news",
+      text: "News List",
+      link: "/admin/news/list",
     },
   ];
 

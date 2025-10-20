@@ -2,6 +2,7 @@ import { useState } from "react";
 import Navbar from "../components/teacher/Navbar";
 import Sidebar from "../components/teacher/Sidebar";
 import { Outlet } from "react-router-dom";
+import ChatWidget from "../components/chat/ChatWidget";
 
 export default function TeacherLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -20,6 +21,7 @@ export default function TeacherLayout() {
                     <Outlet />
                 </div>
             </main>
+            <ChatWidget />
         </div>
     );
 }
