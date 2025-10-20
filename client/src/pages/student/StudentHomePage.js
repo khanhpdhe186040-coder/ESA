@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CourseCard from '../components/general/CourseCard'; 
+import CourseCard from '../../components/general/CourseCard'; 
 import Slider from "react-slick"; // Import the slider component
 
 // Import slick-carousel CSS
