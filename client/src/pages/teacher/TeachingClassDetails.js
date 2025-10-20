@@ -12,6 +12,36 @@ const TeachingClassDetails = () => {
   const [loading, setLoading] = useState(true);
   const { classId, teacherId } = useParams();
 
+  const [schedule, setSchedule] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+
+  // Fetch schedule data
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        setScheduleLoading(true);
+        const response = await axios.get(
+            `http://localhost:9999/api/schedule/${classId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+        );
+        setSchedule(response.data.data || []);
+      } catch (error) {
+        console.error("Error fetching schedule:", error);
+        // Don't show error to user if schedule fetch fails, just log it
+      } finally {
+        setScheduleLoading(false);
+      }
+    };
+
+    if (classId) {
+      fetchSchedule();
+    }
+  }, [classId]);
   const fetchClassData = async () => {
     try {
       setLoading(true);
@@ -130,6 +160,43 @@ const TeachingClassDetails = () => {
       {activeTab === "grades" && (
         <Grades grades={grades} onGradeUpdate={handleGradeUpdate} />
       )}
+
+      {/* Schedule Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Class Schedule</h2>
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {scheduleLoading ? (
+              <div className="p-6 text-center text-gray-500">Loading schedule...</div>
+          ) : schedule.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slot</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                {schedule.map((s, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {s.date}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {s.slot.from} - {s.slot.to}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {s.room || classData?.room || 'TBD'}
+                      </td>
+                    </tr>
+                ))}
+                </tbody>
+              </table>
+          ) : (
+              <div className="p-6 text-center text-gray-500">No schedule available</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
