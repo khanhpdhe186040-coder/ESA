@@ -11,6 +11,7 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const { socket, joinChat, leaveChat, sendMessage, sendTyping } = useSocket();
 
   useEffect(() => {
@@ -29,6 +30,11 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-scroll when typing indicator appears/disappears
+  useEffect(() => {
+    scrollToBottom();
+  }, [isTyping]);
 
   // Socket event listeners
   useEffect(() => {
@@ -131,6 +137,10 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
       setNewMessage(messageContent);
     } finally {
       setSending(false);
+      // Refocus the input after sending message
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -230,12 +240,14 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
       <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
         <div className="flex space-x-2">
           <input
+            ref={inputRef}
             type="text"
             value={newMessage}
             onChange={handleTyping}
             placeholder="Type a message..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={sending}
+            autoFocus
           />
           <button
             type="submit"
