@@ -2,7 +2,18 @@ const Class = require("../models/Class");
 const Schedule = require("../models/Schedule");
 const User = require("../models/User");
 const mongoose = require("mongoose");
-
+const weekdayToNumber = (weekday) => {
+  const map = {
+    Sunday: 1,
+    Monday: 2,
+    Tuesday: 3,
+    Wednesday: 4,
+    Thursday: 5,
+    Friday: 6,
+    Saturday: 7,
+  };
+  return map[weekday];
+};
 // GET /api/classes
 const getAllClasses = async (req, res) => {
   try {
@@ -29,69 +40,144 @@ const getAllClasses = async (req, res) => {
 };
 
 // POST /api/classes/add
-// Create new class
 const createClass = async (req, res) => {
+  // BỎ QUA TRANSACTION ĐỂ TRÁNH LỖI REPLICA SET
   try {
     const {
-      name,
-      courseId,
-      startDate,
-      endDate,
-      capacity,
-      schedule,
-      status,
-      teachers,
-      students,
+      name, courseId, startDate, endDate, capacity, schedule, status, teachers, students,
     } = req.body;
 
-    // Kiểm tra các trường bắt buộc
+    // ... (Kiểm tra bắt buộc và capacity cũ)
     if (
-      !name ||
-      !courseId ||
-      !startDate ||
-      !endDate ||
-      !capacity ||
-      !Array.isArray(schedule) ||
-      schedule.length === 0 ||
-      !Array.isArray(teachers) ||
-      teachers.length === 0 ||
+      !name || !courseId || !startDate || !endDate || !capacity ||
+      !Array.isArray(schedule) || schedule.length === 0 ||
+      !Array.isArray(teachers) || teachers.length === 0 ||
       !Array.isArray(students)
     ) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    // Kiểm tra giới hạn học sinh
     if (students.length > capacity) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: "Class is over capacity" });
+    }
+
+    // ----------------------------------------------------
+    // 1. TẠO DANH SÁCH LỊCH HỌC CỤ THỂ (Schedule instances)
+    // ----------------------------------------------------
+    const classSchedules = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    start.setHours(0, 0, 0, 0); 
+    end.setHours(23, 59, 59, 999); 
+    
+    let currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dayOfWeek = currentDate.getDay(); 
+
+      schedule.forEach((recurringSch) => {
+        const requiredDay = weekdayToNumber(recurringSch.weekday); 
+
+        if (dayOfWeek === requiredDay) {
+          // Chuẩn hóa ngày thành YYYY-MM-DDT00:00:00.000Z
+          const dateOnly = new Date(currentDate.toISOString().split('T')[0]); 
+
+          classSchedules.push({
+            slotId: recurringSch.slot, 
+            roomId: recurringSch.room, 
+            date: dateOnly, 
+          });
+        }
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    if (classSchedules.length === 0) {
+       return res.status(400).json({
         success: false,
-        message: "Class is over capacity",
+        message: "No class schedule can be generated in the specified date range.",
       });
     }
 
-    const newClass = new Class({
-      name,
-      courseId,
-      startDate,
-      endDate,
-      capacity,
-      schedule,
-      status: status || "ongoing",
-      teachers,
-      students,
+    // ----------------------------------------------------
+    // 2. KIỂM TRA TRÙNG LỊCH BẰNG CÁCH FIND TRƯỚC (Pre-check)
+    // ----------------------------------------------------
+    
+    // Tạo mảng chỉ chứa các combo [slotId, roomId, date] duy nhất để kiểm tra
+    const uniqueSchedules = Array.from(new Map(
+        classSchedules.map(item => [`${item.slotId}-${item.roomId}-${item.date.toISOString()}`, item])
+    ).values());
+
+    const checkPromises = uniqueSchedules.map(async (sch) => {
+      const existingSchedule = await Schedule.findOne({
+        slotId: sch.slotId,
+        roomId: sch.roomId,
+        date: sch.date, // So sánh ngày đã được chuẩn hóa (00:00:00Z)
+      });
+
+      if (existingSchedule) {
+        const slotInfo = await mongoose.model("Slot").findById(sch.slotId);
+        const roomInfo = await mongoose.model("Room").findById(sch.roomId);
+        
+        const dateStr = sch.date.toISOString().split('T')[0];
+        const timeStr = `${slotInfo?.from} - ${slotInfo?.to}`;
+        
+        throw new Error(
+          `Schedule conflict found on ${dateStr} at ${timeStr} in Room ${roomInfo?.name}.`
+        );
+      }
     });
 
-    const savedClass = await newClass.save();
+    await Promise.all(checkPromises);
 
+    // ----------------------------------------------------
+    // 3. LƯU LỚP HỌC VÀ SCHEDULE (Nếu không có lỗi trùng lịch)
+    // ----------------------------------------------------
+    
+    const newClass = new Class({
+      name, courseId, startDate, endDate, capacity, schedule, 
+      status: status || "ongoing", teachers, students,
+    });
+
+    // Bước 3a: Lưu Class
+    const savedClass = await newClass.save(); 
+    
+    // Gắn classId
+    const schedulesToSave = classSchedules.map((sch) => ({
+      ...sch,
+      classId: savedClass._id, 
+    }));
+
+    // Bước 3b: Lưu các buổi học cụ thể. Nếu có trùng lịch, Mongo sẽ báo lỗi 11000
+    await Schedule.insertMany(schedulesToSave); 
+    
     res.status(201).json({
       success: true,
-      message: "Class created successfully",
+      message: "Class and Schedules created successfully",
       data: savedClass,
     });
   } catch (error) {
     console.error("Error creating class:", error);
+    
+    // Xử lý lỗi trùng lịch do Pre-check (Nếu checkPromises throw lỗi)
+    if (error.message.includes("Schedule conflict")) {
+         return res.status(409).json({ // Trả về 409
+            success: false,
+            message: error.message, // Thông báo lỗi chi tiết
+            type: 'schedule_conflict' // Thêm type để frontend dễ nhận diện
+        });
+    }
+    
+    // Xử lý lỗi trùng lịch do Unique Index (error code 11000)
+    if (error.code === 11000) { 
+        return res.status(409).json({ // Trả về 409
+            success: false,
+            message: "A schedule conflict was detected (duplicate entry for room/slot/date in MongoDB).",
+            type: 'schedule_conflict'
+        });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -99,7 +185,6 @@ const createClass = async (req, res) => {
     });
   }
 };
-
 // PUT /api/classes/update/:id
 const updateClass = async (req, res) => {
   try {
