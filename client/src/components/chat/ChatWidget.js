@@ -46,7 +46,7 @@ const ChatWidget = () => {
 
   const handleCloseChatList = () => {
     setIsOpen(false);
-    // Don't close the chat box when closing chat list
+    // Don't close the chat box when closing the chat list
   };
 
   const handleCloseChatBox = () => {
