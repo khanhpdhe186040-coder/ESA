@@ -11,3 +11,74 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* Custom styles for slick arrows */
+.slick-slider .slick-prev,
+.slick-slider .slick-next {
+  z-index: 100 !important; /* Đảm bảo nó luôn ở trên */
+  width: 40px !important; 
+  height: 40px !important;
+  background-color: rgba(0, 0, 0, 0.4) !important; /* Màu nền cho nút */
+  border-radius: 50% !important; /* Làm tròn nút */
+  display: flex !important; /* Dùng flexbox để căn giữa icon */
+  justify-content: center !important;
+  align-items: center !important;
+  transition: background-color 0.3s ease; /* Thêm hiệu ứng hover */
+}
+
+/* Đảm bảo nội dung mũi tên hiển thị và có màu trắng */
+.slick-slider .slick-prev::before,
+.slick-slider .slick-next::before {
+  font-family: 'slick' !important; /* Đảm bảo sử dụng font slick */
+  font-size: 24px !important; /* Kích thước icon */
+  line-height: 1 !important; /* Căn giữa icon */
+  color: white !important; /* Màu icon */
+  opacity: 1 !important; /* Đảm bảo hiển thị */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ép nội dung cho từng mũi tên */
+.slick-slider .slick-prev::before {
+  content: '←' !important; /* Hoặc '\2190' hoặc '\2039' */
+}
+
+.slick-slider .slick-next::before {
+  content: '→' !important; /* Hoặc '\2192' hoặc '\203A' */
+}
+
+/* Vị trí của mũi tên */
+.slick-prev {
+  left: 15px !important; 
+}
+.slick-next {
+  right: 15px !important; 
+}
+
+/* Hover effect */
+.slick-slider .slick-prev:hover,
+.slick-slider .slick-next:hover {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* --- Xử lý việc ảnh bị mất hình (quá to) --- */
+/* Đảm bảo chiều cao phù hợp cho ảnh */
+.slick-slider .slick-slide img {
+  width: 100%;
+  /* Chọn 1 trong 2 cách sau: */
+  /* Cách 1: Đặt chiều cao cố định và cắt ảnh (có thể bị mất 1 phần ảnh) */
+  height: 320px; /* Hoặc giá trị khác như 280px, 350px tùy ý */
+  object-fit: cover; 
+  
+  /* Cách 2: Đặt chiều cao tối đa và hiển thị toàn bộ ảnh (có thể có khoảng trắng) */
+  /* max-height: 320px; */
+  /* object-fit: contain; */
+  /* background-color: #f0f0f0;  Nếu dùng contain, nên có màu nền */
+}
+
+
+/* Responsive height for images if needed */
+@media (max-width: 768px) {
+  .slick-slider .slick-slide img {
+    height: 200px; /* Chiều cao nhỏ hơn trên mobile */
+  }
+}
