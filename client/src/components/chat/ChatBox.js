@@ -31,7 +31,6 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Auto-scroll when typing indicator appears/disappears
   useEffect(() => {
     scrollToBottom();
   }, [isTyping]);
@@ -106,6 +105,11 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
 
     const messageContent = newMessage.trim();
     setNewMessage('');
+    
+    // Immediately refocus the input after clearing
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
 
     try {
       setSending(true);
@@ -137,10 +141,10 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
       setNewMessage(messageContent);
     } finally {
       setSending(false);
-      // Refocus the input after sending message
+      // Additional focus restoration after async operations complete
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 0);
+      }, 100);
     }
   };
 
@@ -237,20 +241,27 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200">
         <div className="flex space-x-2">
           <input
             ref={inputRef}
             type="text"
             value={newMessage}
             onChange={handleTyping}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(e);
+              }
+            }}
             placeholder="Type a message..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={sending}
             autoFocus
           />
           <button
-            type="submit"
+            type="button"
+            onClick={handleSendMessage}
             disabled={!newMessage.trim() || sending}
             className={`px-4 py-2 rounded-md text-white font-medium ${
               !newMessage.trim() || sending
@@ -267,7 +278,7 @@ const ChatBox = ({ chat, onClose, currentUserId }) => {
             )}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

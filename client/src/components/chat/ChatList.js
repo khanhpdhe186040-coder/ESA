@@ -18,6 +18,54 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
     }
   }, [currentUserId]);
 
+  // Auto-refresh every 3 seconds
+  useEffect(() => {
+    if (currentUserId) {
+      const interval = setInterval(() => {
+        fetchChatsSilently();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentUserId]);
+
+  // Socket event listener for real-time updates
+  useEffect(() => {
+    if (socket) {
+      socket.on('new-message', (data) => {
+        // Update the lastMessage for the corresponding chat
+        setChats(prevChats => {
+          const updatedChats = prevChats.map(chat => {
+            if (chat._id === data.chatId) {
+              return {
+                ...chat,
+                lastMessage: {
+                  content: data.message,
+                  createdAt: data.timestamp
+                }
+              };
+            }
+            return chat;
+          });
+          
+          // Sort chats by most recent message
+          return updatedChats.sort((a, b) => {
+            if (!a.lastMessage && !b.lastMessage) return 0;
+            if (!a.lastMessage) return 1;
+            if (!b.lastMessage) return -1;
+            return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+          });
+        });
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('new-message');
+      }
+    };
+  }, [socket, currentUserId]);
+
   const fetchChats = async () => {
     try {
       setLoading(true);
@@ -26,7 +74,14 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
-        setChats(response.data.data);
+        // Sort chats by most recent message
+        const sortedChats = response.data.data.sort((a, b) => {
+          if (!a.lastMessage && !b.lastMessage) return 0;
+          if (!a.lastMessage) return 1;
+          if (!b.lastMessage) return -1;
+          return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+        setChats(sortedChats);
       }
     } catch (err) {
       setError('Failed to load chats');
@@ -36,37 +91,26 @@ const ChatList = ({ onChatSelect, onClose, currentUserId }) => {
     }
   };
 
-  // Listen for new messages in real-time and update lastMessage in the list
-  useEffect(() => {
-    if (!socket || !currentUserId) return;
-
-    const handleNewMessage = (data) => {
-      // Update the chat's last message and bubble it to the top
-      setChats((prevChats) => {
-        const index = prevChats.findIndex((c) => c._id === data.chatId);
-        const newLastMessage = {
-          content: data.message,
-          createdAt: data.timestamp,
-          sender: { _id: data.senderId }
-        };
-
-        if (index !== -1) {
-          const updatedChat = { ...prevChats[index], lastMessage: newLastMessage };
-          const remaining = prevChats.filter((_, i) => i !== index);
-          return [updatedChat, ...remaining];
-        }
-
-        // If chat not found (e.g., newly created), refetch the list
-        fetchChats();
-        return prevChats;
+  const fetchChatsSilently = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:9999/api/chat/user/${currentUserId}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-    };
-
-    socket.on('new-message', handleNewMessage);
-    return () => {
-      socket.off('new-message', handleNewMessage);
-    };
-  }, [socket, currentUserId]);
+      if (response.data.success) {
+        // Sort chats by most recent message
+        const sortedChats = response.data.data.sort((a, b) => {
+          if (!a.lastMessage && !b.lastMessage) return 0;
+          if (!a.lastMessage) return 1;
+          if (!b.lastMessage) return -1;
+          return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+        setChats(sortedChats);
+      }
+    } catch (err) {
+      console.error('Error fetching chats silently:', err);
+    }
+  };
 
   const searchUsers = async (query) => {
     if (query.trim().length < 2) {
