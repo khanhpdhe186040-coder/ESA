@@ -6,7 +6,7 @@ const User = require("../models/User");
 const getAllChatsByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log('Getting chats for user:', userId);
+    
 
     // Find all chats where the user is a participant
     const chats = await Chat.find({

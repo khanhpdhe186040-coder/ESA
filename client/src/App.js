@@ -68,7 +68,7 @@ function App() {
           path="/admin/courses"
           element={
             <ProtectedRoute>
-              <CourseManagement />{" "}
+              <CourseManagement />
             </ProtectedRoute>
           }
         />

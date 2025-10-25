@@ -34,9 +34,9 @@ const ChatWidget = () => {
     setSelectedChat(chat);
   };
 
-  const handleClose = () => {
+  const handleCloseChatList = () => {
     setIsOpen(false);
-    setSelectedChat(null);
+    // Don't close the chat box when closing the chat list
   };
 
   const handleCloseChatBox = () => {
@@ -52,21 +52,19 @@ const ChatWidget = () => {
       <ChatButton onClick={handleChatButtonClick} isOpen={isOpen} />
       
       {isOpen && (
-        <>
-          <ChatList
-            onChatSelect={handleChatSelect}
-            onClose={handleClose}
-            currentUserId={currentUserId}
-          />
-          
-          {selectedChat && (
-            <ChatBox
-              chat={selectedChat}
-              onClose={handleCloseChatBox}
-              currentUserId={currentUserId}
-            />
-          )}
-        </>
+        <ChatList
+          onChatSelect={handleChatSelect}
+          onClose={handleCloseChatList}
+          currentUserId={currentUserId}
+        />
+      )}
+      
+      {selectedChat && (
+        <ChatBox
+          chat={selectedChat}
+          onClose={handleCloseChatBox}
+          currentUserId={currentUserId}
+        />
       )}
     </>
   );
