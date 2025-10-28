@@ -199,3 +199,103 @@ exports.GetUserByRoleId = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+// Course registration endpoint - creates user and enrolls in course
+exports.registerForCourse = async (req, res, next) => {
+  try {
+    const {
+      fullName,
+      userName,
+      email,
+      number,
+      birthday,
+      address,
+      courseId,
+    } = req.body;
+
+    // Validation
+    if (!fullName || !userName || !email || !number || !birthday || !address || !courseId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "All fields are required" 
+      });
+    }
+
+    // Check if user already exists
+    const existingUserByUsername = await userAccount.findOne({ userName });
+    if (existingUserByUsername) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Username already exists" 
+      });
+    }
+
+    const existingUserByEmail = await userAccount.findOne({ email });
+    if (existingUserByEmail) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Email already exists" 
+      });
+    }
+
+    // Get student role (assuming roleId "r3" is student)
+    const studentRole = await Role.findOne({ id: "r3" });
+    if (!studentRole) {
+      return res.status(500).json({ 
+        success: false,
+        message: "Student role not found" 
+      });
+    }
+
+    // Default password (already hashed)
+    const defaultPassword = "$2b$10$kcDbZIG9Pg.4/5iqMi1m1OWNz/hUrmxCLm1MDjaP4EUGStKyA2jum";
+
+    // Create new user
+    const newUser = new userAccount({
+      fullName,
+      userName,
+      password: defaultPassword,
+      email,
+      number,
+      birthday,
+      address,
+      roleId: studentRole.id,
+      status: "active",
+    });
+
+    const savedUser = await newUser.save();
+    
+    // Temporarily removing line 266 content
+    // const savedUser =<｜place▁holder▁no▁135｜> await newUser.save();
+
+    // Add user to course
+    const Course = require("../models/Course");
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Course not found" 
+      });
+    }
+
+    // Add student to course
+    if (!course.students.includes(savedUser._id)) {
+      course.students.push(savedUser._id);
+      await course.save();
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Registration successful! Account created. You will receive credentials after payment confirmation.",
+      data: {
+        userId: savedUser._id,
+        userName: savedUser.userName,
+        email: savedUser.email,
+        courseId,
+      },
+    });
+  } catch (error) {
+    console.error("Error in course registration:", error);
+    next(error);
+  }
+};

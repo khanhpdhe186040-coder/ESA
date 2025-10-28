@@ -6,12 +6,14 @@ const {
   getUserById,
   updateUserById,
   GetUserByRoleId,
+  registerForCourse,
 } = require("../controllers/userController");
 const userRouter = express.Router();
 
 const authAdmin = require("../middlewares/authAdmin");
 
 userRouter.post("/register", register);
+userRouter.post("/register-for-course", registerForCourse);
 
 userRouter.post("/login", login);
 
