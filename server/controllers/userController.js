@@ -14,6 +14,7 @@ exports.register = async (req, res, next) => {
       birthday,
       address,
       roleId,
+      status = "pending", // Default status to 'pending' if not provided
     } = req.body;
     const account = await userAccount.findOne({ userName });
     if (account) {
@@ -29,6 +30,7 @@ exports.register = async (req, res, next) => {
       birthday,
       address,
       roleId,
+      status,
     });
 
     const result = await newUser.save();
@@ -50,6 +52,9 @@ exports.login = async (req, res, next) => {
     if (!account) {
       return res.status(401).json({ message: "Invalid username" });
     }
+    if (account.status !== "active") {
+      return res.status(403).json({ message: `Account is ${account.status}` });
+    }
     const isValidPassword = await bcrypt.compare(password, account.password);
     if (!isValidPassword) {
       return res.status(400).json({ message: "Invalid password" });
@@ -60,6 +65,7 @@ exports.login = async (req, res, next) => {
         id: account._id,
         userName: account.userName,
         roleId: account.roleId,
+        status: account.status,
       },
       process.env.JWT_KEY,
       {
@@ -70,7 +76,6 @@ exports.login = async (req, res, next) => {
     res.status(200).json({
       message: "Login successfully",
       accessToken: accessToken,
-      // roleId: account.roleId || "NA",
     });
   } catch (error) {
     next(error);
@@ -141,6 +146,11 @@ exports.updateUserById = async (req, res) => {
       delete updateData.password;
     }
 
+    // Validate status if provided
+    if (updateData.status && !['active', 'inactive', 'pending'].includes(updateData.status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
     const updatedUser = await userAccount
       .findByIdAndUpdate(userId, updateData, {
         new: true,
@@ -187,5 +197,105 @@ exports.GetUserByRoleId = async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Course registration endpoint - creates user and enrolls in course
+exports.registerForCourse = async (req, res, next) => {
+  try {
+    const {
+      fullName,
+      userName,
+      email,
+      number,
+      birthday,
+      address,
+      courseId,
+    } = req.body;
+
+    // Validation
+    if (!fullName || !userName || !email || !number || !birthday || !address || !courseId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "All fields are required" 
+      });
+    }
+
+    // Check if user already exists
+    const existingUserByUsername = await userAccount.findOne({ userName });
+    if (existingUserByUsername) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Username already exists" 
+      });
+    }
+
+    const existingUserByEmail = await userAccount.findOne({ email });
+    if (existingUserByEmail) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Email already exists" 
+      });
+    }
+
+    // Get student role (assuming roleId "r3" is student)
+    const studentRole = await Role.findOne({ id: "r3" });
+    if (!studentRole) {
+      return res.status(500).json({ 
+        success: false,
+        message: "Student role not found" 
+      });
+    }
+
+    // Default password (already hashed)
+    const defaultPassword = "$2b$10$kcDbZIG9Pg.4/5iqMi1m1OWNz/hUrmxCLm1MDjaP4EUGStKyA2jum";
+
+    // Create new user
+    const newUser = new userAccount({
+      fullName,
+      userName,
+      password: defaultPassword,
+      email,
+      number,
+      birthday,
+      address,
+      roleId: studentRole.id,
+      status: "active",
+    });
+
+    const savedUser = await newUser.save();
+    
+    // Temporarily removing line 266 content
+    // const savedUser =<｜place▁holder▁no▁135｜> await newUser.save();
+
+    // Add user to course
+    const Course = require("../models/Course");
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Course not found" 
+      });
+    }
+
+    // Add student to course
+    if (!course.students.includes(savedUser._id)) {
+      course.students.push(savedUser._id);
+      await course.save();
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Registration successful! Account created. You will receive credentials after payment confirmation.",
+      data: {
+        userId: savedUser._id,
+        userName: savedUser.userName,
+        email: savedUser.email,
+        courseId,
+      },
+    });
+  } catch (error) {
+    console.error("Error in course registration:", error);
+    next(error);
   }
 };

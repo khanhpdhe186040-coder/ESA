@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Ensure you have this package installed 
-
+import { useNavigate } from "react-router-dom";
 const RegisterClass = () => {
   const [classes, setClasses] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [enrolling, setEnrolling] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     const token = localStorage.getItem("token");
     const studentId = jwtDecode(token).id;
@@ -27,6 +28,54 @@ const RegisterClass = () => {
     };
     fetchClasses();
   }, []);
+  const handleQuizClick = (courseId) => {
+    if (courseId) {
+      navigate(`/student/quiz/${courseId}`); // << Điều hướng đến trang quiz
+    } else {
+      alert("This class has no associated course to start a quiz.");
+    }
+  };
+  
+  const handleEnroll = async (classId) => {
+    try {
+      setEnrolling(true);
+      const token = localStorage.getItem("token");
+      
+      console.log('Enrolling in class ID:', classId);
+      
+      console.log('Sending enrollment request for class:', classId);
+      const response = await axios.post(
+        `http://localhost:9999/api/student/register-class/${classId}`,
+        {},  // Empty body since we're getting user from token
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true  // Important for sending cookies if using them
+        }
+      );
+      
+      if (response.data.success) {
+        alert('Successfully enrolled in class!');
+        // Update the UI to show the class as enrolled
+        setClasses(prevClasses => 
+          prevClasses.map(cls => 
+            cls._id === classId 
+              ? { ...cls, registered: true } 
+              : cls
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Enrollment error:', error);
+      console.error('Error response data:', error.response?.data);
+      const errorMessage = error.response?.data?.message || 'Failed to enroll in class';
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -62,7 +111,7 @@ const RegisterClass = () => {
               <div className="mb-4 min-h-[200px]">
                 <h2 className="text-xl font-semibold">{cls.name}</h2>
                 <p>
-                  <strong>Course:</strong> {cls.courseName}
+                  <strong>Course:</strong> {cls.name}
                 </p>
                 <p>
                   <strong>Teachers:</strong> {cls.teachers}
@@ -90,18 +139,28 @@ const RegisterClass = () => {
                 </p>
               </div>
               {cls.registered ? (
-                <button
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                  onClick={() => alert(`you are registered for this class`)}
-                >
-                  Enrolled
-                </button>
-              ) : (
+         <>
+         <button
+           className="bg-red-600 text-white px-4 py-2 rounded w-1/2"
+           disabled
+         >
+           Enrolled
+         </button>
+         {/* NÚT QUIZ MỚI */}
+         <button
+           className="bg-green-600 text-white px-4 py-2 rounded w-1/2 hover:bg-green-700"
+           onClick={() => handleQuizClick(cls.courseId)}
+         >
+           Quiz
+         </button>
+       </>           
+          ) : (
                 <button
                   className="left-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                  onClick={() => alert(`Enrolled in ${cls.name}`)}
+                  onClick={() => handleEnroll(cls._id)}
+                  disabled={enrolling}
                 >
-                  Enroll
+                  {enrolling ? 'Enrolling...' : 'Enroll'}
                 </button>
               )}
             </div>

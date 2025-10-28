@@ -113,152 +113,166 @@ export default function AddClassModal({ onClose, onCreate }) {
 
   return (
     <AnimatePresence>
-      <Dialog open={true} onClose={onClose} className="relative z-50">
-        <div className="fixed inset-0 bg-black/30" />
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel
-            as={motion.div}
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl p-6 relative"
+    <Dialog open={true} onClose={onClose} className="relative z-50">
+      {/* backdrop */}
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+  
+      {/* center */}
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel
+          as={motion.div}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-8 relative"
+        >
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition"
           >
+            <X className="w-6 h-6" />
+          </button>
+  
+          <DialogTitle className="text-2xl font-bold text-gray-800 mb-2">
+            Add New Class
+          </DialogTitle>
+          <p className="text-gray-500 mb-6 text-sm">
+            Fill in the information below to create a new class.
+          </p>
+  
+          {/* Form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-gray-700">Class Name</label>
+              <input
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form.name}
+                onChange={(e) => setField("name", e.target.value)}
+                placeholder="Enter class name"
+              />
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-700">Course</label>
+              <select
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form.courseId}
+                onChange={(e) => setField("courseId", e.target.value)}
+              >
+                <option value="">-- Select Course --</option>
+                {courses.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+              {errors.courseId && (
+                <p className="text-red-500 text-sm mt-1">{errors.courseId}</p>
+              )}
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-700">Capacity</label>
+              <input
+                type="number"
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form.capacity}
+                onChange={(e) => setField("capacity", e.target.value)}
+                placeholder="Enter capacity"
+              />
+              {errors.capacity && (
+                <p className="text-red-500 text-sm mt-1">{errors.capacity}</p>
+              )}
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-700">Start Date</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form.startDate}
+                onChange={(e) => setField("startDate", e.target.value)}
+              />
+              {errors.startDate && (
+                <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>
+              )}
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-700">End Date</label>
+              <input
+                type="date"
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form.endDate}
+                onChange={(e) => setField("endDate", e.target.value)}
+              />
+              {errors.endDate && (
+                <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>
+              )}
+            </div>
+          </div>
+  
+          {/* Multi select */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Teachers</label>
+              <select
+                name="teachers"
+                multiple
+                value={form.teachers}
+                onChange={handleMulti}
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2 h-40 mt-1 transition"
+              >
+                {teachersList.map((t) => (
+                  <option key={t._id} value={t._id}>{t.fullName}</option>
+                ))}
+              </select>
+              {errors.teachers && (
+                <p className="text-red-500 text-sm mt-1">{errors.teachers}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Students</label>
+              <select
+                name="students"
+                multiple
+                value={form.students}
+                onChange={handleMulti}
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2 h-40 mt-1 transition"
+              >
+                {studentsList.map((s) => (
+                  <option key={s._id} value={s._id}>{s.fullName}</option>
+                ))}
+              </select>
+              {errors.students && (
+                <p className="text-red-500 text-sm mt-1">{errors.students}</p>
+              )}
+            </div>
+          </div>
+  
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 mt-8">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-100 transition"
             >
-              <X className="w-5 h-5" />
+              Cancel
             </button>
-            <DialogTitle className="text-xl font-bold mb-4">
-              Add New Class
-            </DialogTitle>
+            <button
+              onClick={handleSubmit}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-md transition font-semibold"
+            >
+              Create Class
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+  </AnimatePresence>
+  
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium">Class Name</label>
-                <input
-                  className="w-full border rounded px-3 py-2 mt-1"
-                  value={form.name}
-                  onChange={(e) => setField("name", e.target.value)}
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm">{errors.name}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">Course</label>
-                <select
-                  className="w-full border rounded px-3 py-2 mt-1"
-                  value={form.courseId}
-                  onChange={(e) => setField("courseId", e.target.value)}
-                >
-                  <option value="">-- Select Course --</option>
-                  {courses.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.courseId && (
-                  <p className="text-red-500 text-sm">{errors.courseId}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">Capacity</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-3 py-2 mt-1"
-                  value={form.capacity}
-                  onChange={(e) => setField("capacity", e.target.value)}
-                />
-                {errors.capacity && (
-                  <p className="text-red-500 text-sm">{errors.capacity}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">Start Date</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2 mt-1"
-                  value={form.startDate}
-                  onChange={(e) => setField("startDate", e.target.value)}
-                />
-                {errors.startDate && (
-                  <p className="text-red-500 text-sm">{errors.startDate}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">End Date</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2 mt-1"
-                  value={form.endDate}
-                  onChange={(e) => setField("endDate", e.target.value)}
-                />
-                {errors.endDate && (
-                  <p className="text-red-500 text-sm">{errors.endDate}</p>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="text-sm font-medium">Teachers</label>
-                <select
-                  name="teachers"
-                  multiple
-                  value={form.teachers}
-                  onChange={handleMulti}
-                  className="w-full border rounded px-3 py-2 h-32 mt-1"
-                >
-                  {teachersList.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.fullName}
-                    </option>
-                  ))}
-                </select>
-                {errors.teachers && (
-                  <p className="text-red-500 text-sm">{errors.teachers}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">Students</label>
-                <select
-                  name="students"
-                  multiple
-                  value={form.students}
-                  onChange={handleMulti}
-                  className="w-full border rounded px-3 py-2 h-32 mt-1"
-                >
-                  {studentsList.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.fullName}
-                    </option>
-                  ))}
-                </select>
-                {errors.students && (
-                  <p className="text-red-500 text-sm">{errors.students}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-700 text-white rounded shadow hover:bg-blue-800 font-semibold"
-              >
-                Create
-              </button>
-            </div>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </AnimatePresence>
   );
 }

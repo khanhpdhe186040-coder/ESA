@@ -1,5 +1,6 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { SocketProvider } from "./contexts/SocketContext";
 
 // Teacher
 import TeacherLayout from "./layouts/TeacherLayout";
@@ -20,7 +21,7 @@ import ClassDetails from "./pages/student/ClassDetails";
 import StudentGrades from "./pages/student/Grades";
 import GradeDetails from "./pages/student/GradeDetails";
 import StudentDashboard from "./pages/student/StudentDashboard";
-
+import Quiz from './pages/student/Quiz';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -28,13 +29,21 @@ import ClassesManagement from "./pages/admin/ClassesManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import LoginPage from "./Login/Login";
 import ProtectedRoute from "./Login/ProtectedRoute";
-import NewsAdd from "./components/general/NewsAdd";
+import NewsAdd from "./components/admin/NewsAdd";
 import AdminLayout from "./layouts/AdminLayout";
+import NewsList from "./components/general/NewsList";
+import NewsDetail from "./components/general/NewsDetail";
+import CourseRegistration from "./pages/CourseRegistration";
+import VnpayReturn from "./pages/VnpayReturn";
 function App() {
   return (
-    <Router>
-      <Routes>
+    <SocketProvider>
+      <Router>
+        <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/course-register/:courseId" element={<CourseRegistration />} />
+        <Route path="/payment/vnpay-return" element={<VnpayReturn />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route path="courses" element={<Courses />} />
@@ -63,7 +72,7 @@ function App() {
           path="/admin/courses"
           element={
             <ProtectedRoute>
-              <CourseManagement />{" "}
+              <CourseManagement />
             </ProtectedRoute>
           }
         />
@@ -83,6 +92,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Admin news routes under AdminLayout */}
         <Route
           path="/admin/news"
           element={
@@ -97,13 +107,47 @@ function App() {
           path="/admin/news/add"
           element={
             <ProtectedRoute>
-              <NewsAdd />
+              <AdminLayout>
+                <NewsAdd />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/list"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsList />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsDetail />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/news/list/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <NewsDetail />
+              </AdminLayout>
             </ProtectedRoute>
           }
         />
 
         {/* Student Layout */}
         <Route path="/student" element={<StudentLayout />}>
+          <Route path="news" element={<NewsList />} />
+          <Route path="news/:id" element={<NewsDetail />} />
           <Route path="schedule" element={<StudentSchedule />} />
           <Route path="my-classes" element={<MyClasses />} />
           <Route path="register-class" element={<RegisterClass />} />
@@ -111,9 +155,18 @@ function App() {
 
           <Route path="grade" element={<StudentGrades />} />
           <Route path="grade/:classId" element={<GradeDetails />} />
+          <Route path="/student/register-class" element={<RegisterClass />} />
+          <Route path="/student/quiz/:courseId" element={<Quiz />} />
         </Route>
-      </Routes>
-    </Router>
+        {/* Teacher Layout additions */}
+        <Route path="/teacher" element={<TeacherLayout />}>
+          <Route path="news" element={<NewsList />} />
+          <Route path="news/:id" element={<NewsDetail />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+    </SocketProvider>
   );
 }
 

@@ -45,6 +45,22 @@ export default function ShowUserDetailModal({ user, onClose }) {
               { label: "Username", value: userData.userName },
               { label: "Email", value: userData.email },
               { label: "Phone Number", value: userData.number },
+              {
+                label: "Status",
+                value: (
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-sm capitalize ${
+                      userData.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : userData.status === "inactive"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {userData.status || "-"}
+                  </span>
+                ),
+              },
               { label: "Birthday", value: userData.birthday?.slice(0, 10) },
               { label: "Address", value: userData.address },
               {
