@@ -8,7 +8,7 @@ export default function Navbar({ user = { name: "Admin" }, onToggleSidebar }) {
   /* ----- xử lý logout ----- */
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/login", { replace: true }); // chuyển sang trang login
+    navigate("/", { replace: true }); // chuyển sang trang login
   };
 
   return (

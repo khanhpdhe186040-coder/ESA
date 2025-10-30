@@ -1,10 +1,10 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/student/Sidebar";
-import Navbar from "../components/student/Navbar";
+import Sidebar from "../components/home/Sidebar";
+import Navbar from "../components/home/Navbar";
 import ChatWidget from "../components/chat/ChatWidget";
 
-const StudentLayout = () => {
+const HomeLayout = () => {
   return (
     <div className="flex">
       <Sidebar />
@@ -19,4 +19,4 @@ const StudentLayout = () => {
   );
 };
 
-export default StudentLayout;
+export default HomeLayout;

@@ -49,6 +49,12 @@ const Quiz = () => {
             } else {
                 clearQuizState();
                 const token = localStorage.getItem('token');
+
+                 //Chỉ thêm header Authorization nếu có token
+                const headers = {};
+                if (token) {
+                    headers.Authorization = `Bearer ${token}`;
+                }
                 try {
                     const quizResponse = await axios.get(`http://localhost:9999/api/quiz/course/${courseId}`, { headers: { Authorization: `Bearer ${token}` } });
                     const quizData = quizResponse.data;
@@ -137,6 +143,11 @@ const Quiz = () => {
             return;
         }
         const token = localStorage.getItem('token');
+        // Chỉ thêm header Authorization nếu có token
+        const headers = {};
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
         try {
             const response = await axios.post(`http://localhost:9999/api/quiz/check-answer`, {
                 questionId: questions[currentQuestionIndex]._id,

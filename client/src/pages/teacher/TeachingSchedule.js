@@ -107,27 +107,28 @@ export default function TeachingSchedule() {
         }
     };
 
-    // Fetch slots data
-    const fetchSlots = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get('http://localhost:9999/api/teacher/slots', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            if (response.data && response.data.success && Array.isArray(response.data.data)) {
-                setSlots(response.data.data);
-            } else {
-                console.error("Unexpected slots response structure:", response.data);
-                setSlots([]);
+   // Fetch slots data
+   const fetchSlots = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get('http://localhost:9999/api/teacher/slots', {
+            headers: {
+                Authorization: `Bearer ${token}`
             }
-        } catch (error) {
-            console.error("Error fetching slots:", error);
+        });
+
+        if (response.data && response.data.success && Array.isArray(response.data.data)) {
+            // Đảm bảo slot ID là _id
+            setSlots(response.data.data); 
+        } else {
+            console.error("Unexpected slots response structure:", response.data);
             setSlots([]);
         }
-    };
+    } catch (error) {
+        console.error("Error fetching slots:", error);
+        setSlots([]);
+    }
+};
 
     // Effect to generate weeks when year changes
     useEffect(() => {

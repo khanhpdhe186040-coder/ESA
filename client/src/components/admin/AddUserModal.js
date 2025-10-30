@@ -103,140 +103,151 @@ export default function AddUserModal({ onClose, onCreate }) {
     }
   };
 
-  /* ---------------- JSX ---------------- */
-  return (
-    <AnimatePresence>
+return (
+  <AnimatePresence>
+    <motion.div
+      // Thay đổi backdrop: Màu tối hơn, blur nhẹ
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <motion.div
-        className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        // Thay đổi Modal Box: rounded-3xl, shadow-2xl, max-w-2xl
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-8 relative max-h-[90vh] overflow-y-auto"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <motion.div
-          className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ duration: 0.3 }}
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          // Style nút đóng hiện đại hơn
+          className="absolute right-5 top-5 text-gray-400 hover:text-gray-600 transition"
         >
-          {/* Close */}
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
-          >
-            <X />
-          </button>
+          <X className="w-6 h-6" />
+        </button>
 
-          <h2 className="text-2xl font-semibold mb-6 text-center">
-            Add New User
-          </h2>
+        <h2 className="text-2xl font-bold mb-2 text-gray-800">
+          Add New User
+        </h2>
+        <p className="text-gray-500 mb-6 text-sm">
+          Enter the details to create a new user account.
+        </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              "fullName",
-              "userName",
-              "email",
-              "password",
-              "number",
-              "birthday",
-            ].map((k) => (
-              <div key={k}>
-                <label className="block font-medium">
-                  {k
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (s) => s.toUpperCase())}
-                </label>
-                <input
-                  name={k}
-                  type={
-                    k === "password"
-                      ? "password"
-                      : k === "birthday"
-                      ? "date"
-                      : "text"
-                  }
-                  className="w-full px-3 py-2 mt-1 border rounded"
-                  value={form[k]}
-                  onChange={handleChange}
-                />
-                {errors[k] && (
-                  <p className="text-red-600 text-sm mt-1">{errors[k]}</p>
-                )}
-              </div>
-            ))}
-
-            {/* address */}
-            <div className="md:col-span-2">
-              <label className="block font-medium">Address</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[
+            "fullName",
+            "userName",
+            "email",
+            "password",
+            "number",
+            "birthday",
+          ].map((k) => (
+            <div key={k}>
+              <label className="block text-sm font-medium text-gray-700">
+                {k
+                  .replace(/([A-Z])/g, " $1")
+                  .replace(/^./, (s) => s.toUpperCase())}
+              </label>
               <input
-                name="address"
-                className="w-full px-3 py-2 mt-1 border rounded"
-                value={form.address}
+                name={k}
+                type={
+                  k === "password"
+                    ? "password"
+                    : k === "birthday"
+                    ? "date"
+                    : "text"
+                }
+                // Input style mới: rounded-xl, focus blue, py-2.5
+                className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+                value={form[k]}
                 onChange={handleChange}
               />
-              {errors.address && (
-                <p className="text-red-600 text-sm mt-1">{errors.address}</p>
+              {errors[k] && (
+                <p className="text-red-500 text-sm mt-1">{errors[k]}</p>
               )}
             </div>
+          ))}
 
-            {/* role */}
-            <div>
-              <label className="block font-medium">Role</label>
-              <select
-                name="roleId"
-                className="w-full px-3 py-2 mt-1 border rounded"
-                value={form.roleId}
-                onChange={handleChange}
-              >
-                <option value="">-- Select Role --</option>
-                {roles.map((r) => (
-                  <option key={r._id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-              {errors.roleId && (
-                <p className="text-red-600 text-sm mt-1">{errors.roleId}</p>
-              )}
-            </div>
-
-            {/* status */}
-            <div>
-              <label className="block font-medium">Status</label>
-              <select
-                name="status"
-                className="w-full px-3 py-2 mt-1 border rounded"
-                value={form.status}
-                onChange={handleChange}
-              >
-                <option value="">-- Select Status --</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-              </select>
-              {errors.status && (
-                <p className="text-red-600 text-sm mt-1">{errors.status}</p>
-              )}
-            </div>
+          {/* address */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Address</label>
+            <input
+              name="address"
+              // Input style mới: rounded-xl, focus blue, py-2.5
+              className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition"
+              value={form.address}
+              onChange={handleChange}
+            />
+            {errors.address && (
+              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+            )}
           </div>
 
-          {/* actions */}
-          <div className="flex justify-end gap-2 mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
+          {/* role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Role</label>
+            <select
+              name="roleId"
+              // Select style mới: rounded-xl, focus blue, py-2.5
+              className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition appearance-none"
+              value={form.roleId}
+              onChange={handleChange}
             >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-700 text-white rounded"
-            >
-              Create
-            </button>
+              <option value="">-- Select Role --</option>
+              {roles.map((r) => (
+                <option key={r._id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            {errors.roleId && (
+              <p className="text-red-500 text-sm mt-1">{errors.roleId}</p>
+            )}
           </div>
-        </motion.div>
+
+          {/* status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              name="status"
+              // Select style mới: rounded-xl, focus blue, py-2.5
+              className="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl px-4 py-2.5 mt-1 transition appearance-none"
+              value={form.status}
+              onChange={handleChange}
+            >
+              <option value="">-- Select Status --</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+            {errors.status && (
+              <p className="text-red-500 text-sm mt-1">{errors.status}</p>
+            )}
+          </div>
+        </div>
+
+        {/* actions */}
+        <div className="flex justify-end gap-3 mt-8">
+          <button
+            onClick={onClose}
+            // Button Cancel mới: bo tròn, hover effect
+            className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            // Button Create mới: gradient, shadow, bo tròn
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-md transition font-semibold"
+          >
+            Create
+          </button>
+        </div>
       </motion.div>
-    </AnimatePresence>
-  );
+    </motion.div>
+  </AnimatePresence>
+);
 }

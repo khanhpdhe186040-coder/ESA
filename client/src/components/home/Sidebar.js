@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  FaHome,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaGraduationCap,
-  FaBookOpen,
-  FaNewspaper
+  FaHome
 } from "react-icons/fa";
 
 const Sidebar = () => {
@@ -14,26 +9,12 @@ const Sidebar = () => {
   const location = useLocation();
   const token = localStorage.getItem("token"); // Kiểm tra xem người dùng đã đăng nhập chưa
 
-  const studentMenuItems = [
-    // { name: "Student Panel", icon: <FaHome />, path: "/student" },
-    { name: "Home", icon: <FaHome />, path: "/" },
-    { name: "My Classes", icon: <FaBookOpen />, path: "/student/my-classes" },
-    { name: "Schedule", icon: <FaCalendarAlt />, path: "/student/schedule" },
-    {
-      name: "Register Class",
-      icon: <FaClipboardList />,
-      path: "/student/register-class",
-    },
-    { name: "Grade", icon: <FaGraduationCap />, path: "/student/grade" },
-    { name: "News", icon: <FaNewspaper />, path: "/student/news" },
-  ];
-  // Menu cho Guest (chưa đăng nhập) - chỉ có trang Home
   const guestMenuItems = [
       { name: "Home", icon: <FaHome />, path: "/" },
   ];
   
   // Quyết định menu nào sẽ được hiển thị
-  const menuItems = token ? studentMenuItems : guestMenuItems;
+  const menuItems = guestMenuItems;
 
   return (
     <div
@@ -48,7 +29,7 @@ const Sidebar = () => {
         {isOpen ? "✖" : "☰"}
       </button>
        <h1 className="text-2xl font-bold mb-4">
-        {token ? 'Student Panel' : 'Menu'}
+        {'Menu'}
       </h1>
       <ul className="flex flex-col gap-2">
         {menuItems.map((item) => (

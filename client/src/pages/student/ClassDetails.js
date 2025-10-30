@@ -120,21 +120,7 @@ const ClassDetails = () => {
                 ? teachers.map((t) => t.fullName).join(", ")
                 : "N/A"}
           </p>
-          <div>
-            <strong>Schedule:</strong>
-            {Array.isArray(classData.schedule) &&
-            classData.schedule.length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {classData.schedule.map((s, idx) => (
-                      <li key={idx}>
-                        {s.weekday}: {s.from} - {s.to}
-                      </li>
-                  ))}
-                </ul>
-            ) : (
-                <span> No schedule</span>
-            )}
-          </div>
+
           <p>
             <strong>Room:</strong> {classData.room || "N/A"}
           </p>
@@ -143,6 +129,12 @@ const ClassDetails = () => {
             <span className="text-green-600">{classData.status}</span>
           </p>
         </div>
+          <button
+              onClick={() => navigate("/student/my-classes/" + classId + "/material")}
+              className="my-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+              Class Material
+          </button>
 
         <h2 className="text-xl font-semibold mb-2">Student List</h2>
         <div className="overflow-x-auto">
@@ -192,13 +184,6 @@ const ClassDetails = () => {
             </tbody>
           </table>
         </div>
-
-        <button
-            onClick={() => navigate("/student/my-classes")}
-            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Back to My Classes
-        </button>
 
         {/* Schedule Section */}
         <div className="mt-8">

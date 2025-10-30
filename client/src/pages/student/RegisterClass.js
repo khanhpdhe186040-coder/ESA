@@ -28,13 +28,7 @@ const RegisterClass = () => {
     };
     fetchClasses();
   }, []);
-  const handleQuizClick = (courseId) => {
-    if (courseId) {
-      navigate(`/student/quiz/${courseId}`); // << Điều hướng đến trang quiz
-    } else {
-      alert("This class has no associated course to start a quiz.");
-    }
-  };
+  
   
   const handleEnroll = async (classId) => {
     try {
@@ -145,13 +139,6 @@ const RegisterClass = () => {
            disabled
          >
            Enrolled
-         </button>
-         {/* NÚT QUIZ MỚI */}
-         <button
-           className="bg-green-600 text-white px-4 py-2 rounded w-1/2 hover:bg-green-700"
-           onClick={() => handleQuizClick(cls.courseId)}
-         >
-           Quiz
          </button>
        </>           
           ) : (
