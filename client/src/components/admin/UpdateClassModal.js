@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
-import { X, ChevronDown } from "lucide-react"; 
+import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MultiSelectDropdown from '../MultiSelectDropdown'; // Cần thêm import
 import SingleSelectDropdown from '../SingleSelectDropdown'; // Cần thêm import

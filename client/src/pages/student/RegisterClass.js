@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Ensure you have this package installed 
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 const RegisterClass = () => {
   const [classes, setClasses] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [enrolling, setEnrolling] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   useEffect(() => {
     const token = localStorage.getItem("token");
     const studentId = jwtDecode(token).id;
