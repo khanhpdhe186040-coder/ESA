@@ -21,7 +21,7 @@ const slotRoute = require("./routes/slotRoute");
 const newRoute = require("./routes/newRoute");
 const quizRouter = require('./routes/quizRoute');
 const chatRoute = require('./routes/chatRoute');
-
+const attendanceRoute = require('./routes/attendanceRoute');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -35,6 +35,7 @@ app.use("/api/rooms", require("./routes/roomRoute"));
 app.use("/api/teacher", require("./routes/teacherRoute"));
 app.use('/api/quiz', quizRouter);
 app.use('/api/chat', chatRoute);
+app.use('/api/attendance', attendanceRoute);
 const studentRoute = require("./routes/studentRoute");
 
 

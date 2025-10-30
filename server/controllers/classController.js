@@ -100,16 +100,23 @@ const createClass = async (req, res) => {
       });
     }
 
-    // ----------------------------------------------------
-    // 2. KIỂM TRA TRÙNG LỊCH BẰNG CÁCH FIND TRƯỚC (Pre-check)
-    // ----------------------------------------------------
+    // --------------------------------------------------------------------------
+    // 2. KIỂM TRA TẤT CẢ CÁC TRƯỜNG HỢP TRÙNG LỊCH (Room, Teacher, Student)
+    // --------------------------------------------------------------------------
     
     // Tạo mảng chỉ chứa các combo [slotId, roomId, date] duy nhất để kiểm tra
     const uniqueSchedules = Array.from(new Map(
         classSchedules.map(item => [`${item.slotId}-${item.roomId}-${item.date.toISOString()}`, item])
     ).values());
+    
+    const allConflictChecks = uniqueSchedules.map(async (sch) => {
+      // Tải thông tin Slot để hiển thị lỗi chi tiết
+      const slotInfo = await mongoose.model("Slot").findById(sch.slotId).select('from to').lean();
+      const dateStr = sch.date.toISOString().split('T')[0];
+      const timeStr = `${slotInfo?.from} - ${slotInfo?.to}`;
+      const conflictDetails = { dateStr, timeStr };
 
-    const checkPromises = uniqueSchedules.map(async (sch) => {
+      // 1. KIỂM TRA TRÙNG LỊCH PHÒNG HỌC (Room Conflict)
       const existingSchedule = await Schedule.findOne({
         slotId: sch.slotId,
         roomId: sch.roomId,
@@ -117,19 +124,59 @@ const createClass = async (req, res) => {
       });
 
       if (existingSchedule) {
-        const slotInfo = await mongoose.model("Slot").findById(sch.slotId);
-        const roomInfo = await mongoose.model("Room").findById(sch.roomId);
-        
-        const dateStr = sch.date.toISOString().split('T')[0];
-        const timeStr = `${slotInfo?.from} - ${slotInfo?.to}`;
-        
+        const roomInfo = await mongoose.model("Room").findById(sch.roomId).select('name').lean();
         throw new Error(
-          `Schedule conflict found on ${dateStr} at ${timeStr} in Room ${roomInfo?.name}.`
+          `Schedule conflict: Room ${roomInfo?.name} is already booked on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+          { cause: { type: 'room_conflict', ...conflictDetails } }
         );
+      }
+      
+      // 2. KIỂM TRA TRÙNG LỊCH GIÁO VIÊN (Teacher Conflict)
+      // Tìm các lớp học khác có cùng slot và ngày
+      const conflictingSchedules = await Schedule.find({
+        slotId: sch.slotId,
+        date: sch.date,
+      }).select('classId').lean();
+      
+      if (conflictingSchedules.length > 0) {
+        const conflictingClassIds = conflictingSchedules.map(s => s.classId);
+
+        // Tìm các lớp học đang bị trùng lịch
+        const conflictingClasses = await Class.find({
+            _id: { $in: conflictingClassIds }
+        }).select('teachers students name').lean();
+        
+        // Kiểm tra trùng lịch Giáo viên
+        const teacherIds = teachers.map(t => t.toString());
+        const conflictingTeacherClasses = conflictingClasses.filter(cls => 
+          cls.teachers.some(t => teacherIds.includes(t.toString()))
+        );
+
+        if (conflictingTeacherClasses.length > 0) {
+            const conflictingClassNames = conflictingTeacherClasses.map(cls => cls.name).join(', ');
+            throw new Error(
+                `Schedule conflict: One or more teachers are already teaching in class(es) [${conflictingClassNames}] on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+                { cause: { type: 'teacher_conflict', ...conflictDetails } }
+            );
+        }
+
+        // 3. KIỂM TRA TRÙNG LỊCH HỌC SINH (Student Conflict)
+        const studentIds = students.map(s => s.toString());
+        const conflictingStudentClasses = conflictingClasses.filter(cls => 
+            cls.students.some(s => studentIds.includes(s.toString()))
+        );
+
+        if (conflictingStudentClasses.length > 0) {
+            const conflictingClassNames = conflictingStudentClasses.map(cls => cls.name).join(', ');
+            throw new Error(
+                `Schedule conflict: One or more students are already enrolled in class(es) [${conflictingClassNames}] on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+                { cause: { type: 'student_conflict', ...conflictDetails } }
+            );
+        }
       }
     });
 
-    await Promise.all(checkPromises);
+    await Promise.all(allConflictChecks);
 
     // ----------------------------------------------------
     // 3. LƯU LỚP HỌC VÀ SCHEDULE (Nếu không có lỗi trùng lịch)
@@ -150,6 +197,8 @@ const createClass = async (req, res) => {
     }));
 
     // Bước 3b: Lưu các buổi học cụ thể. Nếu có trùng lịch, Mongo sẽ báo lỗi 11000
+    // Lỗi 11000 chỉ xảy ra khi có 2 request tạo cùng 1 schedule (slot/room/date) tại cùng 1 thời điểm
+    // Chúng ta đã kiểm tra trước ở bước 2, nên trường hợp này rất hiếm
     await Schedule.insertMany(schedulesToSave); 
     
     res.status(201).json({
@@ -160,20 +209,22 @@ const createClass = async (req, res) => {
   } catch (error) {
     console.error("Error creating class:", error);
     
-    // Xử lý lỗi trùng lịch do Pre-check (Nếu checkPromises throw lỗi)
+    // Xử lý lỗi trùng lịch do Pre-check (Nếu allConflictChecks throw lỗi)
     if (error.message.includes("Schedule conflict")) {
+         // Lấy thông báo lỗi chi tiết từ error.message
          return res.status(409).json({ // Trả về 409
             success: false,
-            message: error.message, // Thông báo lỗi chi tiết
+            message: error.message, // Thông báo lỗi chi tiết: 'Schedule conflict: Room ...'
             type: 'schedule_conflict' // Thêm type để frontend dễ nhận diện
         });
     }
     
     // Xử lý lỗi trùng lịch do Unique Index (error code 11000)
     if (error.code === 11000) { 
+        // Đây là lỗi xảy ra khi có 2 request tạo cùng lúc.
         return res.status(409).json({ // Trả về 409
             success: false,
-            message: "A schedule conflict was detected (duplicate entry for room/slot/date in MongoDB).",
+            message: "A concurrent schedule conflict was detected (Please try again).",
             type: 'schedule_conflict'
         });
     }

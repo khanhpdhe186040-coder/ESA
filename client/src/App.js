@@ -13,6 +13,7 @@ import QuizManagementPage from './pages/teacher/QuizManagement';
 import QuizForm from './pages/teacher/QuizForm';
 import QuestionManagementPage from './pages/teacher/QuestionManagement';
 import QuestionForm from "./pages/teacher/QuestionForm";
+import AttendancePage from './pages/teacher/Attendance';
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -61,7 +62,12 @@ function App() {
             path="grades/class/:classId/student/:studentId"
             element={<TeachingGradeDetails />}
           />
-
+{/* Route để xem lịch dạy (điểm khởi đầu) */}
+<Route index element={<TeachingSchedule />} />
+        
+        {/* Route để điểm danh chi tiết */}
+        <Route path="schedule" element={<TeachingSchedule />} />
+        <Route path="attendance/:scheduleId" element={<AttendancePage />} />
         {/* Quản lý danh sách các Quiz */}
           <Route path="quizzes" element={<QuizManagementPage />} />
           <Route path="quizzes/new" element={<QuizForm />} /> 
