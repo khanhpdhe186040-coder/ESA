@@ -42,6 +42,8 @@ import NewsList from "./components/general/NewsList";
 import NewsDetail from "./components/general/NewsDetail";
 //Home
 import HomeLayout from "./layouts/HomeLayout";
+import CourseRegistration from "./pages/CourseRegistration";
+import VnpayReturn from "./pages/VnpayReturn";
 function App() {
   return (
     <SocketProvider>
@@ -49,6 +51,8 @@ function App() {
         <Routes>
         {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/course-register/:courseId" element={<CourseRegistration />} />
+        <Route path="/payment/vnpay-return" element={<VnpayReturn />} />
         {/* Teacher Layout */}
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route path="courses" element={<Courses />} />

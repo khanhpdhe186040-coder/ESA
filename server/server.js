@@ -3,6 +3,7 @@ const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
 require("dotenv").config();
+const checkRequiredEnv = require('./middlewares/envCheck');
 const app = express();
 const server = http.createServer(app);
 app.use(
@@ -22,6 +23,9 @@ const newRoute = require("./routes/newRoute");
 const quizRouter = require('./routes/quizRoute');
 const chatRoute = require('./routes/chatRoute');
 const attendanceRoute = require('./routes/attendanceRoute');
+
+checkRequiredEnv();
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -42,6 +46,7 @@ const studentRoute = require("./routes/studentRoute");
 app.use("/api/schedule", require("./routes/scheduleRoute"));
 app.use("/api/teacher", require("./routes/teacherRoute"));
 app.use("/api/student", studentRoute);
+app.use('/api/payments', require('./routes/paymentRoute'));
 // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/", (req, res) => {
