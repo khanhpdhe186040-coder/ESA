@@ -73,7 +73,12 @@ const CourseDetailPage = () => {
                 >
                     Back to All Courses
                 </Link>
-
+                <Link 
+                    to={`/course-register/${course._id}`}
+                    className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors"
+                >
+                    Register
+                </Link>
                 {/* SỬA ĐỔI: Gỡ bỏ điều kiện kiểm tra token, luôn hiển thị nút "Take the Quiz" */}
                 <Link 
                     to={`/student/quiz/${course._id}`}

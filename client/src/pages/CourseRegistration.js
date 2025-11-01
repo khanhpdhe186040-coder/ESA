@@ -399,10 +399,10 @@ const CourseRegistration = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/")}
             className="text-blue-600 hover:text-blue-800 mb-4 flex items-center font-medium"
           >
-            ← Back to Login
+            ← Back to Home
           </button>
           <h1 className="text-4xl font-bold text-gray-900">Course Registration</h1>
           <p className="text-gray-600 mt-2">Complete your registration and start your learning journey</p>

@@ -342,4 +342,5 @@ module.exports = {
   addCourseReview,
   upvoteReview,
   downvoteReview,
+  getCourseById,
 };

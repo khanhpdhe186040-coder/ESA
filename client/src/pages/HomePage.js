@@ -20,7 +20,7 @@ const HomePage = () => {
 
         const fetchCourses = async () => {
             try {
-                const response = await fetch('http://localhost:9999/api/courses');
+                const response = await fetch('http://localhost:9999/api/courses/public');
                 const responseData = await response.json();
                 if (!responseData.success) {
                     throw new Error(responseData.message || 'Failed to fetch');
