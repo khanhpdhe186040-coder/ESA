@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const { 
     getTeachingSchedule, 
     getTeachingSlots, 
@@ -12,7 +13,13 @@ const {
     addGradeToAStudent,
     updateGradesOfAStudent
 } = require("../controllers/teacherController");
-// const authTeacher = require("../middlewares/authTeacher");
+const {
+  getPendingEnrollments,
+  approveEnrollment,
+  rejectEnrollment
+} = require("../controllers/classController");
+const { jwtAuth } = require("../middlewares/auth"); 
+const authTeacher = require("../middlewares/authTeacher");
 
 // Get teaching schedule for a specific teacher
 router.get("/:teacherId/schedules", getTeachingSchedule);
@@ -45,5 +52,12 @@ router.post("/:teacherId/classes/:classId/grades/student/:studentId", addGradeTo
 router.patch("/grades/:gradeId", updateGradesOfAStudent);
 
 // Get schedule by class
+// Lấy danh sách sinh viên đang chờ duyệt
+router.get("/enrollment-requests", jwtAuth, authTeacher, getPendingEnrollments);
 
+// Duyệt (Accept)
+router.post("/approve-enrollment/:classId/:studentId", jwtAuth, authTeacher, approveEnrollment);
+
+// Từ chối (Reject)
+router.post("/reject-enrollment/:classId/:studentId", jwtAuth, authTeacher, rejectEnrollment);
 module.exports = router; 

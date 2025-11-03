@@ -14,6 +14,7 @@ import QuizForm from './pages/teacher/QuizForm';
 import QuestionManagementPage from './pages/teacher/QuestionManagement';
 import QuestionForm from "./pages/teacher/QuestionForm";
 import AttendancePage from './pages/teacher/Attendance';
+import EnrollmentRequests from './pages/teacher/EnrollmentRequests';
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
@@ -82,6 +83,7 @@ function App() {
           {/* Quản lý các Question */}
           <Route path="quizzes/:quizId/questions/new" element={<QuestionForm />} />
           <Route path="quizzes/questions/edit/:questionId" element={<QuestionForm />} />
+          <Route path="enrollment-requests" element={<EnrollmentRequests />} />
         </Route>
       
 
