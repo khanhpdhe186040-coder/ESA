@@ -11,7 +11,7 @@ module.exports = function (req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_KEY);
 
-    if (decoded.role !== "r3") {
+    if (decoded.roleId !== "r3") {
       return res.status(403).json({ message: "Forbidden: Students only" });
     }
 

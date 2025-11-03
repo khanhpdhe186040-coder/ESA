@@ -1,5 +1,7 @@
 const Schedule = require("../models/Schedule");
-
+const Attendance = require("../models/Attendance"); // 👈 FIX: Đã import Model Attendance
+const Class = require("../models/Class"); // Thêm Class Model (cần cho logic lọc)
+const User = require("../models/User"); // Thêm User Model (nếu cần sau này)
 const getAllSchedule = async (req, res) => {
   try {
     const schedule = await Schedule.find({});
@@ -112,6 +114,8 @@ const deleteSchedule = async (req, res) => {
 const getStudentSchedule = async (req, res) => {
   try {
     const { studentId } = req.params;
+
+    // B1: Lấy tất cả lịch trình mà học sinh này tham gia
     const schedules = await Schedule.find()
       .populate('slotId', 'from to')
       .populate('roomId', 'name location')
@@ -119,75 +123,99 @@ const getStudentSchedule = async (req, res) => {
         path: 'classId',
         select: 'name',
         populate: [
-          {
-            path: 'courseId',
-            select: 'name'
-          },
-          {
-            path: 'teachers',
-            select: '_id fullName'
-          },
-          {
-            path: 'students',
-            select: '_id fullName'
-          }
+          { path: 'courseId', select: 'name' },
+          { path: 'teachers', select: '_id fullName' },
+          { path: 'students', select: '_id fullName' }
         ]
-      });
+      })
+      .lean(); // Dùng .lean() để dễ dàng thêm thuộc tính mới
 
-    if (!schedules) {
-      return res.status(404).json({
-        success: false,
-        message: "Schedule not found"
+    if (!schedules || schedules.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Schedule not found",
+        data: [],
       });
     }
 
-    const filteredSchedules = schedules
-      .filter(item => {
-        // Skip items with missing required data
-        if (!item.classId || !item.slotId) return false;
-        return item.classId.students?.some(t => t._id?.toString() === studentId);
-      })
-      .map(item => {
-        // Safely access properties with null checks
-        const slot = item.slotId ? {
-          id: item.slotId._id,
-          from: item.slotId.from || 'N/A',
-          to: item.slotId.to || 'N/A'
-        } : null;
+    // B2: Lọc các lịch trình mà học sinh này thực sự tham gia và lấy ra scheduleIds
+    const filteredSchedules = schedules.filter(item => {
+      // Bỏ qua nếu thiếu dữ liệu cơ bản
+      if (!item.classId || !item.slotId) return false;
+      
+      // Kiểm tra xem studentId có tồn tại trong danh sách students của Class không
+      return item.classId.students?.some(s => s._id?.toString() === studentId);
+    });
 
-        const room = item.roomId ? {
-          id: item.roomId._id,
-          name: item.roomId.name || 'N/A',
-          location: item.roomId.location || 'N/A'
-        } : { id: null, name: 'N/A', location: 'N/A' };
+    const scheduleIds = filteredSchedules.map(s => s._id);
 
-        const classInfo = item.classId ? {
-          id: item.classId._id,
-          name: item.classId.name || 'N/A',
-          course: item.classId.courseId?.name || 'N/A',
-          teachers: item.classId.teachers?.map(teacher => ({
-            id: teacher?._id || null,
-            name: teacher?.fullName || 'N/A'
-          })) || [],
-          students: item.classId.students?.map(student => ({
-            id: student?._id || null,
-            name: student?.fullName || 'N/A'
-          })) || []
-        } : null;
+    // B3: Lấy tất cả bản ghi điểm danh (Attendance) cho các schedules này
+    const attendances = await Attendance.find({ 
+        scheduleId: { $in: scheduleIds } 
+    }).lean();
 
-        return {
-          id: item._id,
-          slot,
-          room,
-          class: classInfo,
-          date: item.date ? item.date.toISOString().split('T')[0] : 'N/A'
-        };
-      });
+    // B4: Tạo Map để tra cứu nhanh trạng thái điểm danh theo scheduleId
+    // Map: { scheduleId: attendanceStatus (present/absent/late/...) }
+    const attendanceMap = attendances.reduce((map, att) => {
+      const studentAtt = att.studentsAttendance.find(
+          // Tìm trạng thái điểm danh của học sinh hiện tại
+          (sa) => sa.studentId.toString() === studentId.toString()
+      );
+      if (studentAtt) {
+          map.set(att.scheduleId.toString(), studentAtt.status);
+      }
+      return map;
+    }, new Map());
+
+
+    // B5: Kết hợp thông tin điểm danh vào kết quả cuối cùng
+    const finalSchedules = filteredSchedules.map(item => {
+      const scheduleIdStr = item._id.toString();
+      
+      // Lấy trạng thái điểm danh. Mặc định là 'pending' (chưa điểm danh) nếu không tìm thấy
+      const attendanceStatus = attendanceMap.get(scheduleIdStr) || 'pending'; 
+
+      // Định dạng lại đối tượng trả về
+      const slot = item.slotId ? {
+        id: item.slotId._id,
+        from: item.slotId.from || 'N/A',
+        to: item.slotId.to || 'N/A'
+      } : null;
+
+      const room = item.roomId ? {
+        id: item.roomId._id,
+        name: item.roomId.name || 'N/A',
+        location: item.roomId.location || 'N/A'
+      } : { id: null, name: 'N/A', location: 'N/A' };
+
+      const classInfo = item.classId ? {
+        id: item.classId._id,
+        name: item.classId.name || 'N/A',
+        course: item.classId.courseId?.name || 'N/A',
+        teachers: item.classId.teachers?.map(teacher => ({
+          id: teacher?._id || null,
+          name: teacher?.fullName || 'N/A'
+        })) || [],
+        students: item.classId.students?.map(student => ({
+          id: student?._id || null,
+          name: student?.fullName || 'N/A'
+        })) || []
+      } : null;
+
+      return {
+        id: item._id,
+        slot,
+        room,
+        class: classInfo,
+        date: item.date ? item.date.toISOString().split('T')[0] : 'N/A',
+        attendanceStatus: attendanceStatus, // 🌟 Thuộc tính mới
+      };
+    });
 
     res.status(200).json({
       success: true,
       message: "Schedule retrieved successfully",
-      data: filteredSchedules
+      data: finalSchedules
     });
   } catch (error) {
     console.error("Error fetching schedule:", error);

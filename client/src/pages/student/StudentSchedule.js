@@ -1,39 +1,50 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode"; // Ensure you have this package installed
+import { jwtDecode } from "jwt-decode"; 
+
+// 🌟 ĐƯỜNG DẪN API CHÍNH XÁC: /api/student/:studentId/schedule
+const API_BASE_URL = "http://localhost:9999/api/student"; 
+const API_SCHEDULE_PATH = "/schedule"; // Thêm path này để dễ cấu hình
 
 export default function StudentSchedule() {
-  const [year, setYear] = useState(2025); // Mặc định năm 2025
+  const [year, setYear] = useState(new Date().getFullYear());
   const [weeks, setWeeks] = useState([]);
   const [selectedWeek, setSelectedWeek] = useState(null);
-  // Đảm bảo schedule luôn là một mảng, khởi tạo với []
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [studentId, setStudentId] = useState(null);
 
   const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  // Slot labels dựa trên thời gian bắt đầu (tương thích với Backend)
   const slotLabels = [
-    "Slot 0",
-    "Slot 1",
-    "Slot 2",
-    "Slot 3",
-    "Slot 4",
-    "Slot 5",
+    "08:00", 
+    "09:40", 
+    "13:00", 
+    "14:40", 
+    "18:00", 
+    "19:40", 
   ];
 
-  // Ánh xạ từ slot index (rowIdx) sang thời gian bắt đầu thực tế của slot
-  const slotStartTimes = [
-    "08:00", // Slot 0: 08:00 - 09:30
-    "09:40", // Slot 1: 09:40 - 11:10
-    "13:00", // Slot 2: 13:00 - 14:30
-    "14:40", // Slot 3: 14:40 - 16:10
-    "18:00", // Slot 4: 18:00 - 19:30
-    "19:40", // Slot 5: 19:40 - 21:10
-  ];
+  // Logic mã hóa màu sắc điểm danh
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'present':
+        return 'bg-green-100 text-green-700 border-green-300';
+      case 'absent':
+        return 'bg-red-100 text-red-700 border-red-300';
+      case 'late':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-800';
+      case 'excused':
+        return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'pending':
+      default:
+        return 'bg-gray-100 text-gray-500 border-gray-400'; // Chưa điểm danh
+    }
+  };
 
   const generateWeeksOfYear = (targetYear) => {
     const startDate = new Date(`${targetYear}-01-01`);
-    // Điều chỉnh để startDate là ngày thứ Hai đầu tiên của năm
     while (startDate.getDay() !== 1) {
       startDate.setDate(startDate.getDate() + 1);
     }
@@ -46,7 +57,6 @@ export default function StudentSchedule() {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
 
-      // Ngừng nếu tuần bắt đầu trong năm tiếp theo và không phải tuần đầu tiên của năm đó
       if (weekStart.getFullYear() > targetYear && i > 0) break;
 
       const label = `${weekStart.toLocaleDateString(
@@ -69,129 +79,101 @@ export default function StudentSchedule() {
   const getDateByOffset = (startDate, offset) => {
     if (!startDate) return null;
     const date = new Date(startDate);
-    date.setDate(date.getDate() + offset);
+    date.setDate(date.getDate() + offset); 
     return date;
   };
 
-  // Hàm này tìm kiếm trong mảng 'schedule'
-  // Bây giờ nó sẽ tìm dựa trên slot.from và date từ dữ liệu backend
-  const getScheduleItem = (slotId, dateStr) => {
-    if (!Array.isArray(schedule)) {
-      console.error(
-        "Schedule state is not an array, cannot call find(). Current value:",
-        schedule
-      );
-      return null;
-    }
-
-    const expectedStartTime = slotStartTimes[parseInt(slotId, 10)]; // Lấy thời gian bắt đầu từ mảng ánh xạ
-
-    if (!expectedStartTime) {
-      console.warn(`No start time defined for slotId: ${slotId}`);
-      return null;
-    }
-
-    // Log các giá trị tìm kiếm để debug
-    console.log(`--- Searching for item ---`);
-    console.log(`  Target Date (dateStr): ${dateStr}`);
-    console.log(`  Target Start Time (expectedStartTime): ${expectedStartTime}`);
-    console.log(`  Current Schedule Array Length: ${schedule.length}`);
+  const getScheduleItem = (slotStartTime, dateStr) => {
+    if (!Array.isArray(schedule)) return null;
 
     return schedule.find((item) => {
-      // Chắc chắn rằng item.date được định dạng YYYY-MM-DD từ ISO string của backend
       const itemDateFormatted = item.date ? item.date.split("T")[0] : "";
-
-      // Log từng item để xem có khớp không
-      console.log(`    Checking item: date=${item.date} (formatted=${itemDateFormatted}), from=${item.slot?.from}`);
-
+      
       return (
-        item.slot && // Đảm bảo item.slot tồn tại (thay vì item.slotTime)
-        item.slot.from === expectedStartTime && // So sánh với thời gian bắt đầu
-        itemDateFormatted === dateStr // So sánh chính xác chuỗi ngày tháng đã format
+        item.slot?.from === slotStartTime && 
+        itemDateFormatted === dateStr 
       );
     });
   };
 
-  // Effect để tạo các tuần khi năm thay đổi
+  // Effect để tạo các tuần và tìm ID người dùng
   useEffect(() => {
+    // 1. Tạo tuần
     const newWeeks = generateWeeksOfYear(year);
     setWeeks(newWeeks);
-    // Tìm tuần hiện tại thay vì chọn tuần đầu tiên
     const currentDate = new Date();
     const currentWeek = newWeeks.find(week => 
       currentDate >= week.start && currentDate <= week.end
     );
     setSelectedWeek(currentWeek || (newWeeks.length > 0 ? newWeeks[0] : null));
-    console.log("Generated weeks:", newWeeks);
-    console.log("Selected week:", currentWeek || newWeeks[0]);
+
+    // 2. Lấy ID người dùng
+    const token = localStorage.getItem("token");
+    if (token) {
+        try {
+            const decoded = jwtDecode(token);
+            setStudentId(decoded.id);
+        } catch (e) {
+            setError("Lỗi xác thực token.");
+            setLoading(false);
+        }
+    } else {
+        setError("Không tìm thấy token. Vui lòng đăng nhập.");
+        setLoading(false);
+    }
   }, [year]);
 
-  // Effect để lấy dữ liệu lịch học
+
+  // Effect để lấy dữ liệu lịch học (Chạy khi studentId thay đổi)
   useEffect(() => {
+    if (!studentId) return;
+
     const fetchSchedule = async () => {
       setLoading(true);
-      setError(null); // Reset lỗi trước mỗi lần fetch
+      setError(null); 
 
       const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        setError("No token found. Please log in again.");
-        return;
-      }
-
-      const studentId = jwtDecode(token).id; // Lấy ID học sinh từ token
 
       try {
+        // 🌟 SỬ DỤNG ĐƯỜNG DẪN CHÍNH XÁC
         const response = await axios.get(
-          `http://localhost:9999/api/student/${studentId}/schedule`,
+          `${API_BASE_URL}/${studentId}${API_SCHEDULE_PATH}`, 
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        console.log("Schedule API Response:", response.data);
 
-        // Lấy đúng mảng từ thuộc tính 'data' của phản hồi
-        if (response.data && Array.isArray(response.data.data)) {
+        if (response.data?.success && Array.isArray(response.data.data)) {
           setSchedule(response.data.data);
-          console.log(
-            "Fetched Schedule Data (set to state):",
-            response.data.data
-          ); // Log dữ liệu sau khi set
         } else {
-          console.warn(
-            "API response.data.data is not an array or is missing 'data' property:",
-            response.data
+          setError(
+            response.data?.message || "Invalid schedule data format received from server."
           );
-          setError("Invalid schedule data format received from server.");
-          setSchedule([]); // Đảm bảo schedule là mảng rỗng để tránh lỗi
+          setSchedule([]);
         }
       } catch (error) {
-        console.error(
-          "Error fetching schedule:",
-          error.response?.status,
-          error.response?.data
-        );
         setError(
-          `Failed to fetch schedule. Status: ${
-            error.response?.status
-          }, Message: ${error.response?.data?.message || error.message}`
+          `Failed to fetch schedule. Message: ${error.response?.data?.message || error.message}`
         );
-        setSchedule([]); // Đặt lại là mảng rỗng khi có lỗi
+        setSchedule([]); 
       } finally {
         setLoading(false);
       }
     };
 
     fetchSchedule();
-  }, []); // Dependency array rỗng, chỉ fetch 1 lần khi component mount
+  }, [studentId]); 
 
-  if (loading) return <div className="p-6">Loading schedule...</div>;
-  if (error) return <div className="p-6 text-red-600">{error}</div>;
+  if (loading) return <div className="p-6 text-xl font-semibold text-indigo-600">Đang tải lịch học...</div>;
+  if (error) return <div className="p-6 text-xl font-semibold text-red-600">{error}</div>;
 
   return (
     <div className="p-6 bg-white min-h-screen">
-      <div className="flex items-center gap-4 mb-4">
-        <label className="text-sm font-semibold">YEAR</label>
+      <h1 className="text-2xl font-bold mb-4">Lịch Học Của Học Sinh</h1>
+      
+      <div className="flex items-center gap-4 mb-4 bg-gray-50 p-3 rounded shadow-sm border">
+        {/* Selector Năm và Tuần */}
+        <label className="text-sm font-semibold text-gray-700">YEAR</label>
         <select
           value={year}
           onChange={(e) => setYear(+e.target.value)}
@@ -202,7 +184,7 @@ export default function StudentSchedule() {
           <option value={2026}>2026</option>
         </select>
 
-        <label className="text-sm font-semibold">WEEK</label>
+        <label className="text-sm font-semibold text-gray-700">WEEK</label>
         <select
           value={selectedWeek?.label || ""}
           onChange={(e) => {
@@ -220,10 +202,10 @@ export default function StudentSchedule() {
       </div>
 
       {selectedWeek ? (
-        <table className="w-full border-collapse border border-gray-300 text-sm">
+        <table className="w-full border-collapse border border-gray-300 text-sm shadow-lg">
           <thead>
-            <tr className="bg-blue-200 text-center">
-              <th className="border border-gray-300 p-2 font-bold">WEEK</th>
+            <tr className="bg-blue-600 text-white text-center">
+              <th className="border border-gray-300 p-2 font-bold w-[10%]">TIME</th>
               {daysOfWeek.map((day, idx) => {
                 const date = getDateByOffset(selectedWeek.start, idx);
                 const formattedDate = date
@@ -233,63 +215,57 @@ export default function StudentSchedule() {
                   <th key={day} className="border border-gray-300 p-2">
                     {day}
                     <br />
-                    {formattedDate}
+                    <span className="font-normal text-xs">{formattedDate}</span>
                   </th>
                 );
               })}
             </tr>
           </thead>
           <tbody>
-            {slotLabels.map((slotLabel, rowIdx) => (
-              <tr key={slotLabel} className="text-center">
-                <td className="border border-gray-300 p-2 font-semibold">
-                  {slotLabel}
+            {slotLabels.map((slotStartTime, rowIdx) => (
+              <tr key={slotStartTime} className="text-center">
+                <td className="border border-gray-300 p-2 font-semibold bg-gray-100 text-gray-800">
+                  {slotStartTime}
                 </td>
                 {daysOfWeek.map((_, colIdx) => {
                   const date = getDateByOffset(selectedWeek.start, colIdx);
                   const dateStr = formatDate(date);
-                  // Lấy item lịch học dựa trên slotId (rowIdx) và ngày
-                  const item = getScheduleItem(`${rowIdx}`, dateStr);
-
-                  // Debug log để kiểm tra
-                  if (rowIdx === 0 && colIdx === 0) {
-                    console.log(`Table cell debug - Row ${rowIdx}, Col ${colIdx}:`);
-                    console.log(`  Date object:`, date);
-                    console.log(`  Date string (dateStr):`, dateStr);
-                    console.log(`  Found item:`, item);
-                  }
+                  const item = getScheduleItem(slotStartTime, dateStr);
 
                   return (
                     <td
                       key={colIdx}
-                      className="border border-gray-300 p-2 text-left min-w-[150px] align-top"
+                      className="border border-gray-300 p-2 text-left min-w-[150px] align-top bg-white hover:bg-indigo-50 transition duration-150"
                     >
                       {item ? (
                         <div className="space-y-1">
-                          <div>
-                            <span className="font-bold">Class:</span>{" "}
+                          
+                          <div className="text-sm font-bold text-indigo-700">
                             {item.class?.name}
                           </div>
-                          {/* item.class.course từ backend */}
+                          
                           {item.class?.course && (
-                            <div>
+                            <div className="text-xs text-gray-600">
                               <span className="font-bold">Course:</span>{" "}
                               {item.class.course}
                             </div>
                           )}
                           {item.room?.name && (
-                            <div>
+                            <div className="text-xs text-gray-600">
                               <span className="font-bold">Room:</span>{" "}
                               {item.room.name}
                             </div>
                           )}
-                          {/* Hiển thị thời gian từ slot của backend */}
                           {item.slot?.from && item.slot?.to && (
-                            <div>
+                            <div className="text-xs text-gray-600">
                               <span className="font-bold">Time:</span>{" "}
                               {item.slot.from} - {item.slot.to}
                             </div>
                           )}
+                           {/* HIỂN THỊ TRẠNG THÁI ĐIỂM DANH */}
+                           <div className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(item.attendanceStatus)}`}>
+                            {item.attendanceStatus.toUpperCase()}
+                          </div>
                         </div>
                       ) : (
                         <span className="text-gray-400 text-xs">–</span>
@@ -302,7 +278,7 @@ export default function StudentSchedule() {
           </tbody>
         </table>
       ) : (
-        <p className="text-gray-500">No week selected or loading...</p>
+        <p className="text-gray-500 p-6">No week selected or loading...</p>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ const Course = require('../models/Course');
 const Grade = require('../models/Grade');
 
 // Get teaching schedule for a specific teacher
+// Get teaching schedule for a specific teacher
 const getTeachingSchedule = async (req, res) => {
   try {
     const { teacherId } = req.params;
@@ -15,32 +16,37 @@ const getTeachingSchedule = async (req, res) => {
       .populate('roomId', 'name location')
       .populate({
         path: 'classId',
-        select: 'name',
+        select: 'name teachers courseId', // Đảm bảo lấy đủ teachers và courseId
         populate: [
           {
             path: 'courseId',
             select: 'name'
-          },
-          {
-            path: 'teachers',
-            select: '_id'
           }
+          // Không cần populate teachers nữa vì đã select ở trên
         ]
       });
 
-    if (!schedules) {
-      return res.status(404).json({
-        success: false,
-        message: "Schedule not found"
+    if (!schedules || schedules.length === 0) { // Thêm kiểm tra length
+      return res.status(200).json({ // Trả về 200 nếu không có lịch, chứ không phải 404
+        success: true,
+        message: "No schedule found",
+        data: []
       });
     }
 
-    const filteredSchedules = schedules.filter(item =>
-      item.classId?.teachers?.some(t => t._id.toString() === teacherId)
-    ).map(item => ({
+    const filteredSchedules = schedules.filter(item => {
+      // BƯỚC 1: KIỂM TRA TẤT CẢ CÁC THAM CHIẾU CẦN THIẾT CÓ TỒN TẠI KHÔNG
+      if (!item.classId || !item.slotId || !item.roomId || !item.classId.courseId) {
+        console.warn(`Skipping schedule item ${item._id} due to missing references.`);
+        return false;
+      }
+      // BƯỚC 2: KIỂM TRA GIÁO VIÊN CÓ THUỘC LỚP NÀY KHÔNG
+      return item.classId.teachers.some(t => t.toString() === teacherId);
+    }).map(item => ({
       id: item._id,
       slot: {
-        id: item.slotId._id,
+        // SỬ DỤNG OPTIONAL CHAINING (Không cần thiết nếu đã lọc ở trên, nhưng tốt cho phòng vệ)
+        id: item.slotId._id, 
         from: item.slotId.from,
         to: item.slotId.to
       },
@@ -52,7 +58,8 @@ const getTeachingSchedule = async (req, res) => {
       class: {
         id: item.classId._id,
         name: item.classId.name,
-        course: item.classId.courseId.name
+        // Đã lọc ra courseId null ở trên
+        course: item.classId.courseId.name 
       },
       // Format date as YYYY-MM-DD
       date: item.date.toISOString().split('T')[0]
@@ -72,7 +79,6 @@ const getTeachingSchedule = async (req, res) => {
     });
   }
 };
-
 const getTeachingSlots = async (req, res) => {
   try {
     const slots = await Slot.find();

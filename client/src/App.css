@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* TinyMCE content styles in NewsDetail */
+.news-content h1 { @apply text-3xl font-bold leading-tight my-4 text-gray-900; }
+.news-content h2 { @apply text-2xl font-semibold leading-tight my-3 text-gray-900; }
+.news-content h3 { @apply text-xl font-semibold leading-snug my-2.5 text-gray-900; }
+.news-content h4 { @apply text-lg font-semibold leading-snug my-2 text-gray-900; }
+.news-content p { @apply my-2; }
+.news-content em { @apply italic; }
+.news-content strong { @apply font-semibold; }
+.news-content u { text-decoration: underline; }
+.news-content a { @apply text-blue-600 underline; }
+.news-content ul { @apply list-disc pl-6 my-2; }
+.news-content ol { @apply list-decimal pl-6 my-2; }
+.news-content img { @apply max-w-full h-auto my-3; }
+.news-content blockquote { @apply border-l-4 border-gray-300 pl-4 italic my-3 text-gray-700; }

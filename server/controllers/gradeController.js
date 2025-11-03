@@ -138,12 +138,30 @@ const getAllGradesOfAStudentInAllClasses = async (req, res) => {
       });
     }
 
-    const formattedGrades = grades.map((grade) => ({
-      classId: grade.classId._id,
-      className: grade.classId.name,
-      courseName: grade.classId.courseId.name
-      
-    }));
+    const formattedGrades = grades
+        .filter(grade => grade.classId) // <--- Add filter to remove grades where classId is null
+        .map((grade) => {
+            // Destructure for clarity and safety, though the filter should handle null
+            const { classId } = grade;
+            
+            // Safety check for defensive programming, although filter above is primary fix
+            if (!classId) {
+                // This path should ideally not be hit due to the filter
+                console.warn(`Skipping grade ${grade._id} due to missing classId.`);
+                return null;
+            }
+
+            // Ensure courseId is also populated (not null) before accessing its properties
+            const courseName = classId.courseId ? classId.courseId.name : "Course Missing";
+
+            return {
+                classId: classId._id,
+                className: classId.name,
+                courseName: courseName
+            };
+        })
+        .filter(grade => grade !== null); // <--- Filter out any nulls if the map returned them
+
     res.status(200).json({
       success: true,
       message: "Grades for the student retrieved successfully",

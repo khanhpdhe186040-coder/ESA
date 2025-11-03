@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CourseCard from '../components/general/CourseCard'; 
+import CourseCard from '../../components/general/CourseCard'; 
 import Slider from "react-slick"; // Import the slider component
 
 // Import slick-carousel CSS
@@ -20,7 +20,7 @@ const HomePage = () => {
 
         const fetchCourses = async () => {
             try {
-                const response = await fetch('http://localhost:9999/api/courses/public');
+                const response = await fetch('http://localhost:9999/api/courses');
                 const responseData = await response.json();
                 if (!responseData.success) {
                     throw new Error(responseData.message || 'Failed to fetch');

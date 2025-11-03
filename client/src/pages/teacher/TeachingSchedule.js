@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-
+import { useNavigate } from "react-router-dom";
 export default function TeachingSchedule() {
     const [year, setYear] = useState(new Date().getFullYear());
     const [weeks, setWeeks] = useState([]);
@@ -10,7 +10,7 @@ export default function TeachingSchedule() {
     const [slots, setSlots] = useState([]);
     const [weekdays, setWeekdays] = useState([]);
     const [loading, setLoading] = useState(false);
-
+    const navigate = useNavigate();
     // Generate all weeks for a given year
     const generateWeeksOfYear = (targetYear) => {
         const startDate = new Date(`${targetYear}-01-01`);
@@ -214,7 +214,11 @@ export default function TeachingSchedule() {
             groupedSchedule[slotId].push(item);
         });
     }
-
+    const handleTakeAttendance = (scheduleId) => {
+        // Chuyển hướng đến route điểm danh chi tiết
+        // Đảm bảo route này được cấu hình đúng: /teacher/attendance/:scheduleId
+        navigate(`/teacher/attendance/${scheduleId}`);
+    };
     return (
         <div>
             <div className="w-full p-8 bg-gray-50 min-h-screen">
@@ -272,7 +276,7 @@ export default function TeachingSchedule() {
                 <div className="rounded-lg shadow-lg">
                     <table className="max-w-full min-w-[600px] bg-white shadow-md border border-gray-200">
                         <thead>
-                            <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                        <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
                                 <th rowSpan={2} className="py-3 px-4 text-center border border-gray-200">Time</th>
                                 {weekdays.map(day => (
                                     <th
@@ -325,7 +329,7 @@ export default function TeachingSchedule() {
                                                     className="py-2 px-2 border border-gray-200 w-[250px]"
                                                 >
                                                     {scheduleForDay ? (
-                                                        <>
+                                                        <div className="space-y-1">
                                                             <div>
                                                                 <span className="pr-2 font-semibold text-green-500">Class:</span>
                                                                 <span className="text-blue-800 cursor-pointer">
@@ -344,12 +348,20 @@ export default function TeachingSchedule() {
                                                                     {scheduleForDay.room.name}
                                                                 </span>
                                                             </div>
-                                                            <div>
+                                                            <div className="mb-2">
                                                                 <span className="text-md text-gray-500 font-semibold">
                                                                     {scheduleForDay.room.location}
                                                                 </span>
                                                             </div>
-                                                        </>
+
+                                                            {/* 👈 THÊM NÚT ĐIỂM DANH */}
+                                                            <button
+                                                                onClick={() => handleTakeAttendance(scheduleForDay.id)}
+                                                                className="mt-2 w-full py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition duration-150"
+                                                            >
+                                                                Điểm Danh
+                                                            </button>
+                                                        </div>
                                                     ) : null}
                                                 </td>
                                             );

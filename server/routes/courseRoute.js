@@ -7,13 +7,26 @@ const {
   createCourse,
   updateCourse,
   deleteCourse,
+  getPublicCourses,
+  getCourseReviews,
+  addCourseReview,
+  upvoteReview,
+  downvoteReview,
+  getCourseById,
+  getMyCourses,
 } = require("../controllers/courseController");
 
+// Public routes - no authentication required
+router.get("/public", getPublicCourses);
+router.get("/:id/reviews", getCourseReviews);
+router.post("/:id/reviews", addCourseReview);
+router.post("/:courseId/reviews/:reviewId/upvote", upvoteReview);
+router.post("/:courseId/reviews/:reviewId/downvote", downvoteReview);
+router.get("/:id", getCourseById);
+// Protected routes - admin only
 router.get("/",authAdmin, getAllCourses);
-
 router.post("/add",authAdmin, createCourse);
-
 router.put("/update/:id",authAdmin, updateCourse);
-
 router.delete("/delete/:id",authAdmin, deleteCourse);
+
 module.exports = router;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
-import { X  } from "lucide-react";
+import { X, ChevronDown  } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MultiSelectDropdown from '../MultiSelectDropdown'; // Adjust path as needed
 import SingleSelectDropdown from '../SingleSelectDropdown';
@@ -135,20 +135,20 @@ export default function AddClassModal({ onClose, onCreate }) {
     if (!validate()) return;
 
     try {
-      // const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
-      // const payload = {
-      //   ...form,
-      //   capacity: Number(form.capacity),
-      // };
+      const payload = {
+        ...form,
+        capacity: Number(form.capacity),
+      };
 
-      // const { data } = await axios.post(
-      //   "http://localhost:9999/api/classes/add",
-      //   payload,
-      //   {
-      //     headers: { Authorization: `Bearer ${token}` },
-      //   }
-      // );
+      const { data } = await axios.post(
+        "http://localhost:9999/api/classes/add",
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       onCreate();
       onClose();
