@@ -229,7 +229,52 @@ const CourseRegistration = () => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+ // HÀM MỚI: Xử lý đăng ký cho sinh viên đã đăng nhập
+  const handleStudentSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setMessageType("");
+    setIsSubmitting(true);
+
+    if (!currentUser || !currentUser.id) {
+      setMessage("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      setMessageType("error");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // Quan trọng: Lưu ID người dùng hiện tại thay vì biểu mẫu
+      localStorage.setItem('pendingUserId', currentUser.id);
+      localStorage.setItem('pendingCourseId', effectiveCourseId || '');
+      // Xóa mọi dữ liệu biểu mẫu khách cũ có thể còn sót lại
+      localStorage.removeItem('pendingCourseForm');
+
+      const amountVnd = course?.price || 0;
+      const orderId = `${effectiveCourseId}-${Date.now()}`;
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:9999/api'}/payments/vnpay/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountVnd, orderId, orderInfo: `Thanh toan khoa hoc ${course?.name}` })
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
+      setMessage((data && data.message) ? data.message : 'Không thể tạo liên kết thanh toán.');
+      setMessageType('error');
+    } catch (err) {
+      setMessage('Lỗi tạo thanh toán: ' + err.message);
+      setMessageType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // HÀM CŨ (ĐỔI TÊN): Xử lý đăng ký cho khách
+  const handleGuestSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
     setMessageType("");
@@ -241,6 +286,9 @@ const CourseRegistration = () => {
     setIsSubmitting(true);
 
     try {
+      // Xóa mọi dữ liệu người dùng cũ có thể còn sót lại
+      localStorage.removeItem('pendingUserId');
+      // Lưu dữ liệu biểu mẫu cho khách
       localStorage.setItem('pendingCourseForm', JSON.stringify(formData));
       localStorage.setItem('pendingCourseId', effectiveCourseId || '');
 
@@ -398,12 +446,17 @@ const CourseRegistration = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate("/")}
+         <button
+            onClick={() => {
+              // Nếu là student, về /student/home. Nếu là guest, về /
+              // (Giả định trang chủ student là /student/home)
+              navigate(currentUser ? "/student/home" : "/");
+            }}
             className="text-blue-600 hover:text-blue-800 mb-4 flex items-center font-medium"
           >
             ← Back to Home
           </button>
+          {/* ========================================================== */}
           <h1 className="text-4xl font-bold text-gray-900">Course Registration</h1>
           <p className="text-gray-600 mt-2">Complete your registration and start your learning journey</p>
         </div>
@@ -613,9 +666,13 @@ const CourseRegistration = () => {
             </div>
 
             {/* Registration Form Card */}
-            <div ref={formRef} className="bg-white rounded-xl shadow-lg p-6 sticky top-80">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Registration Form</h2>
+           <div ref={formRef} className="bg-white rounded-xl shadow-lg p-6 sticky top-80">
+              {/* Tiêu đề */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                {currentUser ? 'Confirm Registration' : 'Registration Form'}
+              </h2>
 
+              {/* Thông báo lỗi/thành công */}
               {message && (
                 <div
                   className={`mb-6 border-l-4 p-4 ${
@@ -625,35 +682,6 @@ const CourseRegistration = () => {
                   }`}
                 >
                   <div className="flex">
-                    <div className="flex-shrink-0">
-                      {messageType === "error" ? (
-                        <svg
-                          className="h-5 w-5"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 Destructive data.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      ) : (
-                        <svg
-                          className="h-5 w-5"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
                     <div className="ml-3">
                       <p className="text-sm">{message}</p>
                     </div>
@@ -661,124 +689,148 @@ const CourseRegistration = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Full Name */}
-                <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nguyễn Văn A"
-                  />
+              {/* LOGIC ĐIỀU KIỆN MỚI */}
+              {currentUser ? (
+                // DÀNH CHO SINH VIÊN ĐÃ ĐĂNG NHẬP
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    You are logged in as <strong>{currentUser.userName || currentUser.id}</strong>.
+                  </p>
+                  <p className="text-gray-600">
+                    You don't need to fill out the form again. Click 'Register Now' to proceed to payment.
+                  </p>
+                  <button
+                    onClick={handleStudentSubmit} // Sử dụng hàm mới
+                    disabled={isSubmitting}
+                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 ${
+                      isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {isSubmitting ? "Processing..." : "Register Now"}
+                  </button>
                 </div>
+              ) : (
+                // DÀNH CHO KHÁCH (Biểu mẫu cũ)
+                <form onSubmit={handleGuestSubmit} className="space-y-4"> {/* Sử dụng hàm mới */}
+                  {/* Full Name */}
+                  <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="John Doe"
+                    />
+                  </div>
 
-                {/* Username */}
-                <div>
-                  <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Username *
-                  </label>
-                  <input
-                    type="text"
-                    id="userName"
-                    name="userName"
-                    value={formData.userName}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="nguyenvana"
-                  />
-                </div>
+                  {/* Username */}
+                  <div>
+                    <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Username *
+                    </label>
+                    <input
+                      type="text"
+                      id="userName"
+                      name="userName"
+                      value={formData.userName}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="johndoe"
+                    />
+                  </div>
+                  
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="example@email.com"
+                    />
+                  </div>
 
-                {/* Email */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="example@email.com"
-                  />
-                </div>
+                  {/* Phone Number */}
+                  <div>
+                    <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      id="number"
+                      name="number"
+                      value={formData.number}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0912345678"
+                    />
+                  </div>
 
-                {/* Phone Number */}
-                <div>
-                  <label htmlFor="number" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="number"
-                    name="number"
-                    value={formData.number}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0912345678"
-                  />
-                </div>
+                  {/* Birthday */}
+                  <div>
+                    <label htmlFor="birthday" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Birthday *
+                    </label>
+                    <input
+                      type="date"
+                      id="birthday"
+                      name="birthday"
+                      value={formData.birthday}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
 
-                {/* Birthday */}
-                <div>
-                  <label htmlFor="birthday" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Birthday *
-                  </label>
-                  <input
-                    type="date"
-                    id="birthday"
-                    name="birthday"
-                    value={formData.birthday}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                  {/* Address */}
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Address *
+                    </label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="123 ABC Street, District XYZ, City"
+                    />
+                  </div>
 
-                {/* Address */}
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Address *
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="123 Đường ABC, Quận XYZ, TP.HCM"
-                  />
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 ${
-                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-                  }`}
-                >
-                  {isSubmitting ? "Đang xử lý..." : "Đăng Ký Ngay"}
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 ${
+                      isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {isSubmitting ? "Processing..." : "Register Now"}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
