@@ -24,6 +24,7 @@
     "react-router-dom": "^7.6.1",
     "react-scripts": "^5.0.1",
     "react-slick": "^0.31.0",
+    "react-toastify": "^11.0.5",
     "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.8.1",
     "tinymce": "^8.1.0",
