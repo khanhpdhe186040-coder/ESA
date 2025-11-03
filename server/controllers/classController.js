@@ -2,6 +2,7 @@ const Class = require("../models/Class");
 const Schedule = require("../models/Schedule");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const cloudinary = require("../config/cloudinary");
 const weekdayToNumber = (weekday) => {
   const map = {
     Sunday: 1,
@@ -189,16 +190,71 @@ const createClass = async (req, res) => {
 const updateClass = async (req, res) => {
   try {
     const { id } = req.params;
+    const body = { ...req.body };
 
-    const updated = await Class.findByIdAndUpdate(id, req.body, {
+    if (body.schedule && typeof body.schedule === "string") {
+      body.schedule = JSON.parse(body.schedule);
+    }
+    if (body.teachers && typeof body.teachers === "string") {
+      body.teachers = JSON.parse(body.teachers);
+    }
+    if (body.students && typeof body.students === "string") {
+      body.students = JSON.parse(body.students);
+    }
+
+    const existingClass = await Class.findById(id);
+    if (!existingClass) {
+      return res.status(404).json({ success: false, message: "Class not found" });
+    }
+
+    if (req.file) {
+      // Delete previous material if it exists
+      if (existingClass.material?.publicId) {
+        try {
+          await cloudinary.uploader.destroy(existingClass.material.publicId, {
+            resource_type: "auto",
+          });
+        } catch (err) {
+          console.warn("Failed to delete old material:", err.message);
+        }
+      }
+
+      // Upload new file to Cloudinary
+      const uploadStream = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "auto",
+              folder: "class_materials",
+            },
+            (err, result) => {
+              if (err) reject(err);
+              else resolve(result);
+            }
+          );
+          stream.end(req.file.buffer);
+        });
+
+      const result = await uploadStream();
+      const downloadableUrl = result.secure_url.replace(
+        "/upload/",
+        "/upload/fl_attachment/"
+      );
+      body.material = {
+        url: downloadableUrl,
+        publicId: result.public_id,
+      };
+    }
+    const updated = await Class.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     }).populate("courseId", "name");
-    if (!updated)
-      return res
-        .status(404)
-        .json({ success: false, message: "Class not found" });
 
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Class not found" });
+    }
+
+    // ✅ Success response
     res.status(200).json({
       success: true,
       message: "Class updated successfully",
@@ -305,6 +361,7 @@ const getClassesByUserId = async (req, res) => {
       teacher: classData.teachers.map((t) => t.fullName).join(", "),
       schedule: scheduleFormatted,
       room: "Room 101",
+      material: classData.material,
       status: classData.status,
       courseName: classData.courseId?.name || "N/A",
       students: classData.students.map((s) => ({

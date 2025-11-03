@@ -124,7 +124,7 @@ const getTeachingClasses = async (req, res) => {
       startDate: c.startDate.toISOString().split('T')[0],
       endDate: c.endDate.toISOString().split('T')[0],
       capacity: c.capacity,
-      status: c.status
+      status: c.status,
     }));
 
     res.status(200).json({
@@ -165,6 +165,7 @@ const getTeachingClassDetails = async (req, res) => {
       endDate: classDetails.endDate.toISOString().split('T')[0],
       capacity: classDetails.capacity,
       status: classDetails.status,
+      material: classDetails.material,
       teachers: classDetails.teachers.map(t => ({
         id: t._id,
         name: t.fullName,

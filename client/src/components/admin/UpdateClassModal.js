@@ -22,8 +22,10 @@ export default function UpdateClassModal({ classData, onClose, onUpdate }) {
     schedule: [],
     teachers: [],
     students: [],
+    material: null,
   });
   const [errors, setErrors] = useState({});
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -85,7 +87,9 @@ export default function UpdateClassModal({ classData, onClose, onUpdate }) {
       students: classData.students.map((s) =>
         typeof s === "string" ? s : s._id
       ),
+      material: classData.material || null,
     });
+    setFile(null);
   }, [classData]);
 
   const setField = (k, v) => {
@@ -142,35 +146,54 @@ const removeSchedule = (index) => {
 };
 
   const handleUpdate = async () => {
-    if (!validate()) return;
-    try {
-      const token = localStorage.getItem("token");
-      const payload = {
-        ...form,
-        capacity: +form.capacity,
-        schedule: [
-          {
-            slot: "6873841e4b8c2980601b4e7c",
-            room: "6878a52b1ee63a2c0fc2d8e7",
-            weekday: "Monday",
-          },
-        ],
-      };
-      const { data } = await axios.put(
-        `http://localhost:9999/api/classes/update/${classData._id}`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (data.success) {
-        onUpdate(data.data);
-        onClose();
-      }
-    } catch (e) {
-      console.error("Update class failed", e);
+  if (!validate()) return;
+
+  try {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+
+    // Add all fields
+    formData.append("name", form.name);
+    formData.append("courseId", form.courseId);
+    formData.append("startDate", form.startDate);
+    formData.append("endDate", form.endDate);
+    formData.append("capacity", form.capacity);
+    formData.append("status", form.status);
+    formData.append("schedule", JSON.stringify(form.schedule));
+    formData.append("teachers", JSON.stringify(form.teachers));
+    formData.append("students", JSON.stringify(form.students));
+
+    // ✅ Attach file if selected
+    if (file) formData.append("file", file);
+
+    const res = await axios.put(
+      `http://localhost:9999/api/classes/update/${classData._id}`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (res.data?.success) {
+      const updatedClass = res.data.data;
+
+      // ✅ Update local state
+      setForm((prev) => ({
+        ...prev,
+        material: updatedClass.material || prev.material,
+      }));
+
+      setFile(null);
+      onUpdate?.(updatedClass);
+
+      // ✅ Short delay before closing (so user sees success)
+      setTimeout(() => onClose?.(), 200);
+    } else {
+      alert(res.data?.message || "Failed to update class.");
     }
-  };
+  } catch (err) {
+    console.error("Update class failed", err);
+    alert(err.response?.data?.message || "Server error.");
+  }
+};
 
   return (
     <AnimatePresence>
@@ -287,7 +310,49 @@ const removeSchedule = (index) => {
                     error={errors.status}
                 />
               </div>
-            </div>
+
+  {/* Material Upload */}
+  <div>
+    <label className="text-sm font-medium text-gray-700">Material</label>
+    <div className="flex items-center gap-3 mt-1">
+      {/* Upload / Replace Button */}
+      <button
+        type="button"
+        onClick={() => document.getElementById("material-upload").click()}
+        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition"
+      >
+        {file ? "Change" : "Upload"}
+      </button>
+
+      {/* Hidden file input */}
+      <input
+        id="material-upload"
+        type="file"
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+        className="hidden"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
+
+      {/* ✅ Preview / Download link */}
+      {file ? (
+        <span className="text-sm text-gray-700 truncate max-w-[200px]">
+          {file.name}
+        </span>
+      ) : form.material?.url ? (
+        <a
+          href={form.material.url}
+          download
+          className="text-blue-600 text-sm underline truncate max-w-[200px] hover:text-blue-800"
+          title={decodeURIComponent(form.material.url.split("/").pop())}
+        >
+          {decodeURIComponent(form.material.url.split("/").pop())}
+        </a>
+      ) : (
+        <span className="text-gray-500 text-sm">No file</span>
+      )}
+    </div>
+  </div>
+</div>
             
             {/* Schedule Configuration (Đã được đơn giản hóa trong code cũ, cần cập nhật nếu muốn đồng bộ) */}
             <div className="md:col-span-2 mt-6">

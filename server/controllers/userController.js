@@ -134,34 +134,64 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+const uploadBufferToCloudinary = (buffer, opts = {}) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: "image", ...opts },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+
 exports.updateUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     const updateData = { ...req.body };
-
     if (updateData.password) {
-      const hashedPassword = await bcrypt.hash(updateData.password, 10);
-      updateData.password = hashedPassword;
+      updateData.password = await bcrypt.hash(updateData.password, 10);
     } else {
       delete updateData.password;
     }
-
-    // Validate status if provided
-    if (updateData.status && !['active', 'inactive', 'pending'].includes(updateData.status)) {
+    if (
+      updateData.status &&
+      !["active", "inactive", "pending"].includes(updateData.status)
+    ) {
       return res.status(400).json({ message: "Invalid status value" });
     }
+    if (req.file && req.file.buffer) {
+      const current = await userAccount
+        .findById(userId)
+        .select("imagePublicId");
 
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        folder: "profiles",
+        overwrite: true,
+      });
+
+      updateData.image = result.secure_url;
+      updateData.imagePublicId = result.public_id;
+      if (current?.imagePublicId && current.imagePublicId !== result.public_id) {
+        try {
+          await cloudinary.uploader.destroy(current.imagePublicId);
+        } catch (e) {
+          console.warn("Failed to delete old Cloudinary image:", e?.message);
+        }
+      }
+    }
     const updatedUser = await userAccount
       .findByIdAndUpdate(userId, updateData, {
         new: true,
         runValidators: true,
+        context: "query",
       })
       .select("-password");
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
-
     const role = await Role.findOne({ id: updatedUser.roleId });
     const userWithRole = {
       ...updatedUser.toObject(),
@@ -177,7 +207,10 @@ exports.updateUserById = async (req, res) => {
     });
   } catch (error) {
     console.error("Update error:", error);
-    res.status(500).json({ message: "Server error", error });
+    if (error?.message?.includes("Only JPG") || error?.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Server error", error: error.message || error });
   }
 };
 

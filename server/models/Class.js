@@ -25,6 +25,10 @@ const classSchema = new Schema(
       required: true,
       min: 1,
     },
+    material: {
+      url: { type: String },
+      publicId: { type: String },
+    },
     schedule: [
       {
         weekday: {

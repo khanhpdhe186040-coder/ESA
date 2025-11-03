@@ -107,47 +107,64 @@ const ClassDetails = () => {
               : [];
 
   return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Class Details</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Class Details</h1>
 
-        <div className="bg-white shadow rounded p-4 mb-6">
-          <p>
-            <strong>Class:</strong> {classData.name}
-          </p>
-          <p>
-            <strong>Teacher:</strong>{" "}
-            {teachers.length > 0
-                ? teachers.map((t) => t.fullName).join(", ")
-                : "N/A"}
-          </p>
-          <div>
-            <strong>Schedule:</strong>
-            {Array.isArray(classData.schedule) &&
+      <div className="bg-white shadow rounded p-4 mb-6">
+        <p>
+          <strong>Class:</strong> {classData.name}
+        </p>
+        <p>
+          <strong>Teacher:</strong>{" "}
+          {teachers.length > 0
+            ? teachers.map((t) => t.fullName).join(", ")
+            : "N/A"}
+        </p>
+        <div>
+          <strong>Schedule:</strong>
+          {Array.isArray(classData.schedule) &&
             classData.schedule.length > 0 ? (
-                <ul className="list-disc list-inside">
-                  {classData.schedule.map((s, idx) => (
-                      <li key={idx}>
-                        {s.weekday}: {s.from} - {s.to}
-                      </li>
-                  ))}
-                </ul>
-            ) : (
-                <span> No schedule</span>
-            )}
-          </div>
-          <p>
-            <strong>Room:</strong> {classData.room || "N/A"}
-          </p>
-          <p>
-            <strong>Status:</strong>{" "}
-            <span className="text-green-600">{classData.status}</span>
-          </p>
+            <ul className="list-disc list-inside">
+              {classData.schedule.map((s, idx) => (
+                <li key={idx}>
+                  {s.weekday}: {s.from} - {s.to}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span> No schedule</span>
+          )}
         </div>
+        <p>
+          <strong>Room:</strong> {classData.room || "N/A"}
+        </p>
+        {classData?.material?.url || classData?.material ? (
+          <p>
+            <strong>Material:</strong>{" "}
+            <a
+              href={classData.material?.url || classData.material}
+              download
+              className="text-blue-600 underline hover:text-blue-800"
+            >
+              Download File
+            </a>
+          </p>
+        ) : (
+          <p>
+            <strong>Material:</strong>{" "}
+            <span className="text-gray-500">No file uploaded</span>
+          </p>
+        )}
+        <p>
+          <strong>Status:</strong>{" "}
+          <span className="text-green-600">{classData.status}</span>
+        </p>
+      </div>
 
-        <h2 className="text-xl font-semibold mb-2">Student List</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-200 text-sm">
-            <thead className="bg-gray-100">
+      <h2 className="text-xl font-semibold mb-2">Student List</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-200 text-sm">
+          <thead className="bg-gray-100">
             <tr>
               <th className="border px-4 py-3 text-left w-16">#</th>
               <th className="border px-4 py-3 text-left">Image</th>
@@ -157,86 +174,86 @@ const ClassDetails = () => {
               <th className="border px-4 py-3 text-left">Email</th>
               <th className="border px-4 py-3 text-left">Birth Date</th>
             </tr>
-            </thead>
-            <tbody>
+          </thead>
+          <tbody>
             {students.map((student, index) => (
-                <tr key={student.id} className="hover:bg-gray-50">
-                  <td className="border px-4 py-3 text-gray-500">{index + 1}</td>
-                  <td className="border px-4 py-3">{student.image || 'No Image'}</td>
-                  {(() => {
-                    const nameParts = student.name.trim().split(/\s+/);
-                    const firstName = nameParts[0] || '';
-                    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-                    const middleName = nameParts.length > 2
-                        ? nameParts.slice(1, nameParts.length - 1).join(' ')
-                        : nameParts.length === 2 ? '' : '';
+              <tr key={student.id} className="hover:bg-gray-50">
+                <td className="border px-4 py-3 text-gray-500">{index + 1}</td>
+                <td className="border px-4 py-3">{student.image || 'No Image'}</td>
+                {(() => {
+                  const nameParts = student.name.trim().split(/\s+/);
+                  const firstName = nameParts[0] || '';
+                  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+                  const middleName = nameParts.length > 2
+                    ? nameParts.slice(1, nameParts.length - 1).join(' ')
+                    : nameParts.length === 2 ? '' : '';
 
-                    return (
-                        <>
-                          <td className="border px-4 py-3 font-semibold text-blue-700">
-                            {firstName}
-                          </td>
-                          <td className="border px-4 py-3 font-semibold text-blue-700">
-                            {middleName}
-                          </td>
-                          <td className="border px-4 py-3 font-semibold text-blue-700">
-                            {lastName}
-                          </td>
-                        </>
-                    );
-                  })()}
-                  <td className="border px-4 py-3">{student.email}</td>
-                  <td className="border px-4 py-3">{student.birthday}</td>
-                </tr>
+                  return (
+                    <>
+                      <td className="border px-4 py-3 font-semibold text-blue-700">
+                        {firstName}
+                      </td>
+                      <td className="border px-4 py-3 font-semibold text-blue-700">
+                        {middleName}
+                      </td>
+                      <td className="border px-4 py-3 font-semibold text-blue-700">
+                        {lastName}
+                      </td>
+                    </>
+                  );
+                })()}
+                <td className="border px-4 py-3">{student.email}</td>
+                <td className="border px-4 py-3">{student.birthday}</td>
+              </tr>
             ))}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
+      </div>
 
-        <button
-            onClick={() => navigate("/student/my-classes")}
-            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Back to My Classes
-        </button>
+      <button
+        onClick={() => navigate("/student/my-classes")}
+        className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Back to My Classes
+      </button>
 
-        {/* Schedule Section */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Class Schedule</h2>
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            {scheduleLoading ? (
-              <div className="p-6 text-center text-gray-500">Loading schedule...</div>
-            ) : schedule.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slot</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+      {/* Schedule Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Class Schedule</h2>
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {scheduleLoading ? (
+            <div className="p-6 text-center text-gray-500">Loading schedule...</div>
+          ) : schedule.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slot</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {schedule.map((s, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {s.date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {s.slot.from} - {s.slot.to}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {s.room || classData?.room || 'TBD'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {schedule.map((s, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {s.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {s.slot.from} - {s.slot.to}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {s.room || classData?.room || 'TBD'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-6 text-center text-gray-500">No schedule available</div>
-            )}
-          </div>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-6 text-center text-gray-500">No schedule available</div>
+          )}
         </div>
       </div>
+    </div>
   );
 };
 

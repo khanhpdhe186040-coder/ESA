@@ -129,6 +129,23 @@ const TeachingClassDetails = () => {
         <p>
           <strong>Course:</strong> {classData?.course}
         </p>
+        {classData?.material?.url ? (
+          <p>
+            <strong>Material:</strong>{" "}
+            <a
+              href={classData.material.url}
+              download
+              className="text-blue-600 underline hover:text-blue-800"
+            >
+              Download File
+            </a>
+          </p>
+        ) : (
+          <p>
+            <strong>Material:</strong>{" "}
+            <span className="text-gray-500">No file uploaded</span>
+          </p>
+        )}
         <p>
           <strong>Status:</strong>{" "}
           <span className="text-green-600">{classData?.status}</span>
@@ -166,34 +183,34 @@ const TeachingClassDetails = () => {
         <h2 className="text-xl font-semibold mb-4">Class Schedule</h2>
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {scheduleLoading ? (
-              <div className="p-6 text-center text-gray-500">Loading schedule...</div>
+            <div className="p-6 text-center text-gray-500">Loading schedule...</div>
           ) : schedule.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slot</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
                 </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {schedule.map((s, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {s.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {s.slot.from} - {s.slot.to}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {s.room || classData?.room || 'TBD'}
-                      </td>
-                    </tr>
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {s.date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {s.slot.from} - {s.slot.to}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {s.room || classData?.room || 'TBD'}
+                    </td>
+                  </tr>
                 ))}
-                </tbody>
-              </table>
+              </tbody>
+            </table>
           ) : (
-              <div className="p-6 text-center text-gray-500">No schedule available</div>
+            <div className="p-6 text-center text-gray-500">No schedule available</div>
           )}
         </div>
       </div>

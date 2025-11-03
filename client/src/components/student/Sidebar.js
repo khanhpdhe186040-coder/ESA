@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation} from "react-router-dom";
 import {
   FaHome,
   FaCalendarAlt,
   FaClipboardList,
   FaGraduationCap,
   FaBookOpen,
-  FaNewspaper
+  FaNewspaper,
+  FaUserCircle
 } from "react-icons/fa";
 
 const Sidebar = () => {
@@ -17,6 +18,7 @@ const Sidebar = () => {
   const studentMenuItems = [
     // { name: "Student Panel", icon: <FaHome />, path: "/student" },
     { name: "Home", icon: <FaHome />, path: "/" },
+    { name: "Profile", icon: <FaUserCircle />, path: "/student/profile" },
     { name: "My Classes", icon: <FaBookOpen />, path: "/student/my-classes" },
     { name: "Schedule", icon: <FaCalendarAlt />, path: "/student/schedule" },
     {
