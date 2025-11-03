@@ -2,7 +2,11 @@ const userAccount = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Role = require("../models/Role");
-
+const Course = require("../models/Course");
+const { 
+    sendGuestRegistrationEmail, 
+    sendStudentEnrollmentEmail 
+} = require("../services/emailService");
 exports.register = async (req, res, next) => {
   try {
     const {
@@ -201,6 +205,7 @@ exports.GetUserByRoleId = async (req, res) => {
 };
 
 // Course registration endpoint - creates user and enrolls in course
+
 exports.registerForCourse = async (req, res, next) => {
   try {
     const {
@@ -237,6 +242,15 @@ exports.registerForCourse = async (req, res, next) => {
         message: "Email already exists" 
       });
     }
+    
+    // 1. Tìm khóa học
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Course not found" 
+      });
+    }
 
     // Get student role (assuming roleId "r3" is student)
     const studentRole = await Role.findOne({ id: "r3" });
@@ -247,7 +261,7 @@ exports.registerForCourse = async (req, res, next) => {
       });
     }
 
-    // Default password (already hashed)
+    // Default password (already hashed) - Bạn có thể thay đổi pass này
     const defaultPassword = "$2b$10$kcDbZIG9Pg.4/5iqMi1m1OWNz/hUrmxCLm1MDjaP4EUGStKyA2jum";
 
     // Create new user
@@ -260,42 +274,92 @@ exports.registerForCourse = async (req, res, next) => {
       birthday,
       address,
       roleId: studentRole.id,
-      status: "active",
+      status: "active", // Hoặc 'pending' nếu bạn muốn admin duyệt
     });
-
-    const savedUser = await newUser.save();
     
-    // Temporarily removing line 266 content
-    // const savedUser =<｜place▁holder▁no▁135｜> await newUser.save();
+   // 2. Lưu người dùng mới
+    const savedUser = await newUser.save();
 
-    // Add user to course
-    const Course = require("../models/Course");
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Course not found" 
-      });
-    }
+    // 3. SỬA LỖI: Dùng updateOne VÀ KIỂM TRA KẾT QUẢ
+    const updateResult = await Course.updateOne(
+      { _id: courseId }, // Lọc
+      { $addToSet: { students: savedUser._id } } // Thao tác
+    );
 
-    // Add student to course
-    if (!course.students.includes(savedUser._id)) {
-      course.students.push(savedUser._id);
-      await course.save();
+    // 4. CHỈ GỬI EMAIL NẾU DATABASE BỊ THAY ĐỔI
+    // (updateResult.modifiedCount > 0) nghĩa là sinh viên vừa được thêm vào
+    if (updateResult.modifiedCount > 0) {
+        sendGuestRegistrationEmail(savedUser, course);
     }
 
     res.status(201).json({
       success: true,
-      message: "Registration successful! Account created. You will receive credentials after payment confirmation.",
+      message: "Registration and enrollment successful!",
       data: {
         userId: savedUser._id,
-        userName: savedUser.userName,
-        email: savedUser.email,
-        courseId,
+        courseId: course._id,
       },
     });
+
   } catch (error) {
     console.error("Error in course registration:", error);
+    next(error);
+  }
+};
+//  Ghi danh sinh viên đã có tài khoản vào khóa học
+exports.enrollExistingUser = async (req, res, next) => {
+  try {
+    const { userId, courseId } = req.body;
+
+    if (!userId || !courseId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "userId and courseId are required" 
+      });
+    }
+
+    // 1. Tìm người dùng (Vẫn cần để đảm bảo user tồn tại)
+    const user = await userAccount.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    // 2. Tìm khóa học (Vẫn cần để đảm bảo course tồn tại)
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Course not found" 
+      });
+    }
+
+  // 3. SỬA LỖI: Dùng updateOne VÀ KIỂM TRA KẾT QUẢ
+    const updateResult = await Course.updateOne(
+      { _id: courseId }, // Lọc
+      { $addToSet: { students: user._id } } // Thao tác
+    );
+
+    // 4. CHỈ GỬI EMAIL NẾU DATABASE BỊ THAY ĐỔI
+    // (updateResult.modifiedCount > 0) nghĩa là sinh viên vừa được thêm vào
+    if (updateResult.modifiedCount > 0) {
+        sendStudentEnrollmentEmail(user, course);
+    }
+    
+    // 5. Trả về thành công
+    res.status(200).json({
+      success: true,
+      message: "Enrollment successful!",
+      data: {
+        userId: user._id,
+        courseId: course._id,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error in enrolling existing user:", error);
     next(error);
   }
 };

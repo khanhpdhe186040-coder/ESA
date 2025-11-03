@@ -7,6 +7,7 @@ const {
   updateUserById,
   GetUserByRoleId,
   registerForCourse,
+  enrollExistingUser,
 } = require("../controllers/userController");
 const userRouter = express.Router();
 
@@ -25,4 +26,5 @@ userRouter.get("/:id", getUserById);
 
 userRouter.get("/",authAdmin, getAllUser);
 
+userRouter.post("/enroll-existing-user", enrollExistingUser);
 module.exports = userRouter;
