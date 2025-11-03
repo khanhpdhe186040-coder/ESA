@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Calendar, GraduationCap, BookOpen, Newspaper, HelpCircle } from "lucide-react";
+import {UserCircle, Calendar, GraduationCap, BookOpen, Newspaper, HelpCircle } from "lucide-react";
 
 export default function Sidebar() {
   const navigate = useNavigate();

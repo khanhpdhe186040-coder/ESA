@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { X, ImagePlus, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { X, ImagePlus, Trash2, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export default function Profile({ id: idProp, initialUser, onUpdated }) {
   /* ---------------- Token & ID derivation ---------------- */
@@ -52,7 +52,18 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
   const [notFound, setNotFound] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
   const hydratedOnceRef = useRef(false);
+
+  // Thông báo
+  const [message, setMessage] = useState({ type: "", text: "" });
+  useEffect(() => {
+    if (message.text) {
+      const t = setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [message]);
+
   const toInputDate = (v) => {
     if (!v) return "";
     try {
@@ -87,18 +98,17 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
   const fromServerToForm = (u) => ({
     fullName: u?.fullName ?? form.fullName,
     userName: u?.userName ?? form.userName,
-    email:    u?.email    ?? form.email,
-    number:   u?.number   ?? form.number,
+    email: u?.email ?? form.email,
+    number: u?.number ?? form.number,
     birthday: toInputDate(u?.birthday) || form.birthday,
-    address:  u?.address  ?? form.address,
-    image:    u?.image ?? u?.imageUrl ?? u?.avatarUrl ?? u?.avatar ?? form.image,
+    address: u?.address ?? form.address,
+    image: u?.image ?? u?.imageUrl ?? u?.avatarUrl ?? u?.avatar ?? form.image,
     roleId:
       typeof u?.roleId === "object"
         ? u?.roleId?.id ?? u?.roleId?._id ?? form.roleId
         : u?.roleId ?? form.roleId,
   });
 
-  // Age calculation
   const calcAge = (isoDateStr) => {
     if (!isoDateStr) return null;
     const d = new Date(isoDateStr);
@@ -113,30 +123,21 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
   const validatePhone = (raw) => {
     if (!raw) return { ok: false, reason: "Phone number is required" };
     const trimmed = raw.trim();
-    const startsDigit = /^\d/.test(trimmed);
-    const endsDigit = /\d$/.test(trimmed);
     const digitsOnly = trimmed.replace(/\D/g, "");
     const lengthOK = digitsOnly.length === 10;
     return {
-      ok: startsDigit && endsDigit && lengthOK,
-      reason: !lengthOK
-        ? "Phone number must have exactly 10 digits"
-        : !startsDigit || !endsDigit
-        ? "Phone number must start and end with a number"
-        : "",
+      ok: lengthOK,
+      reason: !lengthOK ? "Phone number must have exactly 10 digits" : "",
     };
   };
 
   useEffect(() => {
     if (!initialUser) return;
-
     const incomingId = initialUser?._id || initialUser?.id;
-    const currentId  = id ? String(id) : null;
-
+    const currentId = id ? String(id) : null;
     const shouldHydrate =
       !hydratedOnceRef.current ||
       (incomingId && currentId && String(incomingId) !== currentId);
-
     if (!shouldHydrate) return;
 
     hydrateFromUser(initialUser);
@@ -160,10 +161,9 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
           validateStatus: () => true,
         });
         if (cancelled) return;
-
         if (res.status === 401 || res.status === 403) {
           setNotFound(true);
-          alert("Unauthorized. Please log in again.");
+          setMessage({ type: "error", text: "Unauthorized. Please log in again." });
           return;
         }
 
@@ -172,36 +172,45 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
           setNotFound(true);
           return;
         }
-
         hydrateFromUser(u);
         setNotFound(false);
         hydratedOnceRef.current = true;
       } catch (err) {
         console.error("[Profile] Fetch failed:", err);
         setNotFound(true);
-        alert(err?.response?.data?.message || "Failed to load profile");
+        setMessage({ type: "error", text: "Failed to load profile" });
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initialUser, token, id]);
 
   /* ---------------- Validation ---------------- */
   const validate = () => {
     const newErrors = {};
     let valid = true;
-
-    if (!form.fullName.trim()) { newErrors.fullName = "Full name is required"; valid = false; }
-    if (!form.userName.trim()) { newErrors.userName = "Username is required"; valid = false; }
-
+    if (!form.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+      valid = false;
+    }
+    if (!form.userName.trim()) {
+      newErrors.userName = "Username is required";
+      valid = false;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!form.email.trim() || !emailRegex.test(form.email)) {
-      newErrors.email = "Valid email is required"; valid = false;
+      newErrors.email = "Valid email is required";
+      valid = false;
     }
     const phoneCheck = validatePhone(form.number);
-    if (!phoneCheck.ok) { newErrors.number = phoneCheck.reason; valid = false; }
+    if (!phoneCheck.ok) {
+      newErrors.number = phoneCheck.reason;
+      valid = false;
+    }
     if (!form.birthday.trim()) {
       newErrors.birthday = "Birthday is required";
       valid = false;
@@ -210,44 +219,23 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
       if (age == null) {
         newErrors.birthday = "Birthday is invalid";
         valid = false;
-      } else {
-        const role = form.roleId;
-        if (role === "r3") {
-          if (age < 6 || age > 100) {
-            newErrors.birthday = "Age must be between 6 and 100 years old";
-            valid = false;
-          }
-        } else if (role === "r1" || role === "r2") {
-          if (age < 22 || age > 70) {
-            newErrors.birthday = "Age must be between 22 and 70 years old";
-            valid = false;
-          }
-        } else {
-          if (age < 6 || age > 100) {
-            newErrors.birthday = "Age must be between 6 and 100 years old";
-            valid = false;
-          }
-        }
       }
     }
-
-    // Password (optional)
     if (passwords.password || passwords.confirmPassword) {
       if (passwords.password.length < 6) {
-        newErrors.password = "Password must be at least 6 characters"; valid = false;
+        newErrors.password = "Password must be at least 6 characters";
+        valid = false;
       }
       if (passwords.password !== passwords.confirmPassword) {
-        newErrors.confirmPassword = "Passwords do not match"; valid = false;
+        newErrors.confirmPassword = "Passwords do not match";
+        valid = false;
       }
     }
-
     setErrors(newErrors);
     return valid;
   };
 
-  /* ---------------- Handlers ---------------- */
-  const handleChange = (e) =>
-    setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+  const handleChange = (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
   const handlePwChange = (e) =>
     setPasswords((s) => ({ ...s, [e.target.name]: e.target.value }));
 
@@ -255,7 +243,7 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Please choose an image file.");
+      setMessage({ type: "error", text: "Please choose an image file." });
       return;
     }
     setImageFile(file);
@@ -269,65 +257,38 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
     setImagePreview("");
   };
 
-  /* ---------------- Save ---------------- */
   const handleSave = async () => {
     if (!validate()) return;
     const idForPut = initialUser?._id || id;
     if (!token || !idForPut) {
-      alert("Authentication or user ID missing.");
+      setMessage({ type: "error", text: "Authentication or user ID missing." });
       return;
     }
 
     setSaving(true);
     try {
       let putRes;
-
       if (imageFile) {
         const fd = new FormData();
-        fd.append("fullName", form.fullName ?? "");
-        fd.append("userName", form.userName ?? "");
-        fd.append("email",    form.email ?? "");
-        fd.append("number",   form.number ?? "");
-        fd.append("birthday", form.birthday ?? "");
-        fd.append("address",  form.address ?? "");
-        fd.append("roleId",   form.roleId ?? "");
+        Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ""));
         fd.append("image", imageFile);
         if (passwords.password) fd.append("password", passwords.password);
 
-        putRes = await axios.put(
-          `http://localhost:9999/api/users/${idForPut}`,
-          fd,
-          {
-            withCredentials: true,
-            headers: { Authorization: `Bearer ${token}` },
-            validateStatus: () => true,
-          }
-        );
+        putRes = await axios.put(`http://localhost:9999/api/users/${idForPut}`, fd, {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${token}` },
+          validateStatus: () => true,
+        });
       } else {
         const payload = {
-          fullName: form.fullName ?? "",
-          userName: form.userName ?? "",
-          email:    form.email ?? "",
-          number:   form.number ?? "",
-          birthday: form.birthday ?? "",
-          address:  form.address ?? "",
-          image:    form.image ?? "",
-          roleId:   form.roleId ?? "",
+          ...form,
           ...(passwords.password ? { password: passwords.password } : {}),
         };
-
-        putRes = await axios.put(
-          `http://localhost:9999/api/users/${idForPut}`,
-          payload,
-          {
-            withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            validateStatus: () => true,
-          }
-        );
+        putRes = await axios.put(`http://localhost:9999/api/users/${idForPut}`, payload, {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          validateStatus: () => true,
+        });
       }
 
       if (putRes.status >= 400) {
@@ -336,22 +297,20 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
 
       const updatedUser = putRes?.data?.data ?? putRes?.data ?? null;
       if (updatedUser) {
-        const nextForm = fromServerToForm(updatedUser);
-        if (nextForm.image && form.image && nextForm.image === form.image && imageFile) {
-          nextForm.image = `${nextForm.image}${nextForm.image.includes("?") ? "&" : "?"}t=${Date.now()}`;
-        }
-        setForm(nextForm);
+        setForm(fromServerToForm(updatedUser));
         onUpdated?.(updatedUser);
       }
 
       if (imagePreview) URL.revokeObjectURL(imagePreview);
       setImagePreview("");
       setImageFile(null);
-
-      alert("Profile updated successfully!");
+      setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err) {
       console.error("[Profile] Update failed:", err);
-      alert(err?.message || err?.response?.data?.message || "Failed to update profile");
+      setMessage({
+        type: "error",
+        text: err?.message || err?.response?.data?.message || "Failed to update profile",
+      });
     } finally {
       setSaving(false);
     }
@@ -373,6 +332,24 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
+      {/* Thông báo */}
+      {message.text && (
+        <div
+          className={`mb-4 flex items-center gap-2 p-3 rounded-md ${
+            message.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-300"
+              : "bg-red-50 text-red-700 border border-red-300"
+          }`}
+        >
+          {message.type === "success" ? (
+            <CheckCircle2 className="w-5 h-5" />
+          ) : (
+            <AlertTriangle className="w-5 h-5" />
+          )}
+          <span>{message.text}</span>
+        </div>
+      )}
+
       {notFound && (
         <div className="mb-4 flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 p-3 text-yellow-800">
           <AlertTriangle className="w-5 h-5 mt-0.5" />
@@ -397,7 +374,6 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
             )}
           </div>
 
-          {/* Buttons row */}
           <div className="mt-4 flex items-center gap-2">
             <label className="inline-flex items-center gap-2 px-3 py-2 border rounded cursor-pointer hover:bg-gray-50">
               <ImagePlus className="w-4 h-4" />
@@ -436,31 +412,65 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
             </div>
           ))}
 
-          {/* Optional password change */}
-          <div>
-            <label className="block font-medium">New Password (optional)</label>
-            <input
-              name="password"
-              type="password"
-              className="w-full px-3 py-2 mt-1 border rounded"
-              value={passwords.password ?? ""}
-              onChange={handlePwChange}
-              placeholder="Leave empty to keep current password"
-            />
-            {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
-          </div>
+          {/* Change Password */}
+          <div className="md:col-span-2 mt-4">
+            {!showPasswordFields ? (
+              <button
+                type="button"
+                onClick={() => setShowPasswordFields(true)}
+                className="text-blue-700 hover:underline font-medium"
+              >
+                Change Password?
+              </button>
+            ) : (
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-gray-700">Change Password</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordFields(false);
+                      setPasswords({ password: "", confirmPassword: "" });
+                      setErrors((e) => ({ ...e, password: "", confirmPassword: "" }));
+                    }}
+                    className="text-red-600 hover:underline text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
 
-          <div>
-            <label className="block font-medium">Confirm New Password</label>
-            <input
-              name="confirmPassword"
-              type="password"
-              className="w-full px-3 py-2 mt-1 border rounded"
-              value={passwords.confirmPassword ?? ""}
-              onChange={handlePwChange}
-            />
-            {errors.confirmPassword && (
-              <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-medium">New Password</label>
+                    <input
+                      name="password"
+                      type="password"
+                      className="w-full px-3 py-2 mt-1 border rounded"
+                      value={passwords.password ?? ""}
+                      onChange={handlePwChange}
+                      placeholder="Enter new password"
+                    />
+                    {errors.password && (
+                      <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-medium">Confirm New Password</label>
+                    <input
+                      name="confirmPassword"
+                      type="password"
+                      className="w-full px-3 py-2 mt-1 border rounded"
+                      value={passwords.confirmPassword ?? ""}
+                      onChange={handlePwChange}
+                      placeholder="Confirm new password"
+                    />
+                    {errors.confirmPassword && (
+                      <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -472,8 +482,7 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
             disabled={saving}
             className="px-4 py-2 bg-blue-700 text-white rounded inline-flex items-center gap-2 disabled:opacity-60"
           >
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Save Changes
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />} Save
           </button>
         </div>
       </div>
