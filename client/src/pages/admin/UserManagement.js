@@ -6,36 +6,79 @@ import AddUserModal from "../../components/admin/AddUserModal";
 import UpdateUserModal from "../../components/admin/UpdateUserModal";
 import ShowUserDetailModal from "../../components/admin/ShowUserDetailModal";
 
+// Hàm tiện ích để giải mã JWT (để lấy user ID)
+const decodeToken = (token) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Failed to decode token:", e);
+    return null;
+  }
+};
+
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all"); // mã r1, r2 hoặc all
-  const [statusFilter, setStatusFilter] = useState("all"); // all, active, inactive, pending
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [showAdd, setShowAdd] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  
+  // THÊM: State để kích hoạt việc fetch lại dữ liệu
+  const [triggerRefetch, setTriggerRefetch] = useState(0); 
 
-  /* ---------------- Fetch data ---------------- */
-  useEffect(() => {
-    const fetchUsers = async () => {
+  /* ---------------- Fetch Users Function ---------------- */
+  // TÁCH HÀM FETCH RA NGOÀI ĐỂ CÓ THỂ GỌI LẠI
+  const fetchUsers = async () => {
+    try {
       const token = localStorage.getItem("token");
       const res = await axios.get("http://localhost:9999/api/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(res.data.data || []);
-    };
+    } catch (error) {
+        console.error("Failed to fetch users:", error);
+    }
+  };
 
+  /* ---------------- Fetch data on Mount and Update ---------------- */
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    
+    // Lấy ID của người dùng hiện tại từ token (Vẫn giữ logic này)
+    if (token) {
+      const decoded = decodeToken(token);
+      if (decoded && decoded.id) {
+        setCurrentUserId(decoded.id);
+      }
+    }
+
+    // THAY THẾ: Gọi fetchUsers và fetchRoles
+    fetchUsers();
+    
     const fetchRoles = async () => {
       const res = await axios.get("http://localhost:9999/api/roles");
       setRoles(res.data.data || []);
     };
-
-    fetchUsers();
     fetchRoles();
-  }, []);
+
+    // Re-fetch users khi triggerRefetch thay đổi
+  }, [triggerRefetch]); // THAY ĐỔI: Thêm triggerRefetch vào dependency array
 
   /* ---------- Lấy 1 user theo id ---------- */
   const fetchUserById = async (id) => {
@@ -53,14 +96,30 @@ export default function UserManagement() {
 
   /* ---------------- Filter ---------------- */
   const filtered = users.filter((u) => {
+    // LOẠI TRỪ USER HIỆN TẠI
+    if (currentUserId && u._id === currentUserId) {
+      return false;
+    }
+
     const matchSearch =
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roleId.id === roleFilter;
     const matchStatus = statusFilter === "all" || u.status === statusFilter;
+    
     return matchSearch && matchRole && matchStatus;
   });
 
+  /* ---------------- Handlers ---------------- */
+  const handleSuccess = () => {
+    // Đóng Modal
+    setShowAdd(false);
+    setShowUpdate(false);
+    setSelectedUser(null);
+    // Tăng giá trị state để kích hoạt useEffect fetch lại dữ liệu
+    setTriggerRefetch(prev => prev + 1); 
+  };
+  
   /* ---------------- JSX ---------------- */
   return (
     <AdminLayout>
@@ -233,10 +292,7 @@ export default function UserManagement() {
       {showAdd && (
         <AddUserModal
           onClose={() => setShowAdd(false)}
-          onCreate={(u) => {
-            setUsers((prev) => [...prev, u]);
-            setShowAdd(false);
-          }}
+          onCreate={handleSuccess} // GỌI HÀM XỬ LÝ CHUNG
         />
       )}
       {showUpdate && selectedUser && (
@@ -246,10 +302,7 @@ export default function UserManagement() {
             setSelectedUser(null);
             setShowUpdate(false);
           }}
-          onUpdate={(upd) => {
-            setUsers((p) => p.map((x) => (x._id === upd._id ? upd : x)));
-            setShowUpdate(false);
-          }}
+          onUpdate={handleSuccess} // GỌI HÀM XỬ LÝ CHUNG
         />
       )}
       {showDetail && selectedUser && (

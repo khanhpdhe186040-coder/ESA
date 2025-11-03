@@ -236,19 +236,181 @@ const createClass = async (req, res) => {
     });
   }
 };
+
 // PUT /api/classes/update/:id
 const updateClass = async (req, res) => {
   try {
     const { id } = req.params;
+    const updateFields = req.body;
 
-    const updated = await Class.findByIdAndUpdate(id, req.body, {
+    // 1. TÌM LỚP HỌC CŨ VÀ KIỂM TRA TỒN TẠI
+    const existingClass = await Class.findById(id);
+    if (!existingClass) {
+      return res.status(404).json({ success: false, message: "Class not found" });
+    }
+
+    // 2. TẠO DỮ LIỆU CUỐI CÙNG SAU KHI CẬP NHẬT
+    const updatedData = { ...existingClass.toObject(), ...updateFields };
+    const { name, courseId, startDate, endDate, capacity, schedule, status, teachers, students } = updatedData;
+
+    // 3. KIỂM TRA VALIDATION CƠ BẢN VÀ CAPACITY
+    if (
+      !name || !courseId || !startDate || !endDate || !capacity ||
+      !Array.isArray(schedule) || schedule.length === 0 ||
+      !Array.isArray(teachers) || teachers.length === 0 ||
+      !Array.isArray(students)
+    ) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+    
+    // Đảm bảo capacity là number
+    const finalCapacity = Number(capacity);
+    if (students.length > finalCapacity) {
+      return res.status(400).json({ success: false, message: "Class is over capacity" });
+    }
+
+    // ----------------------------------------------------
+    // 4. TẠO DANH SÁCH LỊCH HỌC CỤ THỂ MỚI
+    // ----------------------------------------------------
+    const classSchedules = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    start.setHours(0, 0, 0, 0); 
+    end.setHours(23, 59, 59, 999); 
+    
+    let currentDate = new Date(start);
+    // Hàm weekdayToNumber phải được định nghĩa ở ngoài scope này
+    while (currentDate <= end) {
+      const dayOfWeek = currentDate.getDay(); 
+
+      schedule.forEach((recurringSch) => {
+        const requiredDay = weekdayToNumber(recurringSch.weekday); 
+
+        if (dayOfWeek === requiredDay) {
+          const dateOnly = new Date(currentDate.toISOString().split('T')[0]); 
+
+          classSchedules.push({
+            slotId: recurringSch.slot, 
+            roomId: recurringSch.room, 
+            date: dateOnly, 
+          });
+        }
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    if (classSchedules.length === 0) {
+       return res.status(400).json({
+        success: false,
+        message: "No class schedule can be generated in the specified date range.",
+      });
+    }
+
+    // ----------------------------------------------------
+    // 5. KIỂM TRA TẤT CẢ CÁC TRƯỜNG HỢP TRÙNG LỊCH MỚI
+    // ----------------------------------------------------
+    
+    const uniqueSchedules = Array.from(new Map(
+        classSchedules.map(item => [`${item.slotId}-${item.roomId}-${item.date.toISOString()}`, item])
+    ).values());
+    
+    const allConflictChecks = uniqueSchedules.map(async (sch) => {
+      // Tải thông tin Slot để hiển thị lỗi chi tiết
+      const slotInfo = await mongoose.model("Slot").findById(sch.slotId).select('from to').lean();
+      const dateStr = sch.date.toISOString().split('T')[0];
+      const timeStr = `${slotInfo?.from} - ${slotInfo?.to}`;
+      const conflictDetails = { dateStr, timeStr };
+
+      // Lớp đang cập nhật không được tính là lớp xung đột
+      const NOT_THIS_CLASS = { classId: { $ne: id } };
+      
+      // 5a. KIỂM TRA TRÙNG LỊCH PHÒNG HỌC (Room Conflict)
+      const existingSchedule = await Schedule.findOne({
+        slotId: sch.slotId,
+        roomId: sch.roomId,
+        date: sch.date,
+        ...NOT_THIS_CLASS // Loại trừ các schedule thuộc lớp đang được cập nhật
+      });
+
+      if (existingSchedule) {
+        const roomInfo = await mongoose.model("Room").findById(sch.roomId).select('name').lean();
+        throw new Error(
+          `Schedule conflict: Room ${roomInfo?.name} is already booked on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+          { cause: { type: 'room_conflict', ...conflictDetails } }
+        );
+      }
+      
+      // Tìm các lớp học khác (ngoại trừ lớp này) có cùng slot và ngày
+      const conflictingSchedules = await Schedule.find({
+        slotId: sch.slotId,
+        date: sch.date,
+        ...NOT_THIS_CLASS // Loại trừ các schedule thuộc lớp đang được cập nhật
+      }).select('classId').lean();
+      
+      if (conflictingSchedules.length > 0) {
+        const conflictingClassIds = conflictingSchedules.map(s => s.classId);
+
+        // Tìm các lớp học đang bị trùng lịch (không phải lớp hiện tại)
+        const conflictingClasses = await Class.find({
+            _id: { $in: conflictingClassIds, $ne: id } 
+        }).select('teachers students name').lean();
+        
+        // 5b. Kiểm tra trùng lịch Giáo viên
+        const teacherIds = teachers.map(t => t.toString());
+        const conflictingTeacherClasses = conflictingClasses.filter(cls => 
+          cls.teachers.some(t => teacherIds.includes(t.toString()))
+        );
+
+        if (conflictingTeacherClasses.length > 0) {
+            const conflictingClassNames = conflictingTeacherClasses.map(cls => cls.name).join(', ');
+            throw new Error(
+                `Schedule conflict: One or more teachers are already teaching in class(es) [${conflictingClassNames}] on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+                { cause: { type: 'teacher_conflict', ...conflictDetails } }
+            );
+        }
+
+        // 5c. Kiểm tra trùng lịch Học sinh
+        const studentIds = students.map(s => s.toString());
+        const conflictingStudentClasses = conflictingClasses.filter(cls => 
+            cls.students.some(s => studentIds.includes(s.toString()))
+        );
+
+        if (conflictingStudentClasses.length > 0) {
+            const conflictingClassNames = conflictingStudentClasses.map(cls => cls.name).join(', ');
+            throw new Error(
+                `Schedule conflict: One or more students are already enrolled in class(es) [${conflictingClassNames}] on ${conflictDetails.dateStr} at ${conflictDetails.timeStr}.`,
+                { cause: { type: 'student_conflict', ...conflictDetails } }
+            );
+        }
+      }
+    });
+
+    await Promise.all(allConflictChecks);
+
+
+    // ----------------------------------------------------
+    // 6. CẬP NHẬT DỮ LIỆU TRONG DATABASE (Transaction-like steps)
+    // ----------------------------------------------------
+    
+    // Bước 6a: Xóa các lịch học cũ
+    await Schedule.deleteMany({ classId: id });
+    
+    // Bước 6b: Cập nhật Class
+    // Sử dụng findByIdAndUpdate với object updatedData đã được validate
+    const updated = await Class.findByIdAndUpdate(id, updatedData, {
       new: true,
       runValidators: true,
-    }).populate("courseId", "name");
-    if (!updated)
-      return res
-        .status(404)
-        .json({ success: false, message: "Class not found" });
+    }).populate("courseId", "name"); // Populate lại để trả về response
+
+    // Bước 6c: Lưu các buổi học cụ thể mới
+    const schedulesToSave = classSchedules.map((sch) => ({
+      ...sch,
+      classId: updated._id, 
+    }));
+    await Schedule.insertMany(schedulesToSave); 
+    
 
     res.status(200).json({
       success: true,
@@ -257,6 +419,25 @@ const updateClass = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating class:", error);
+    
+    // Xử lý lỗi trùng lịch
+    if (error.message.includes("Schedule conflict")) {
+         return res.status(409).json({
+            success: false,
+            message: error.message,
+            type: 'schedule_conflict'
+        });
+    }
+    
+    // Xử lý lỗi trùng khóa (11000)
+    if (error.code === 11000) { 
+        return res.status(409).json({
+            success: false,
+            message: "A concurrent schedule conflict was detected during update.",
+            type: 'schedule_conflict'
+        });
+    }
+
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -264,7 +445,6 @@ const updateClass = async (req, res) => {
     });
   }
 };
-
 // DELETE /api/classes/delete/:id
 const deleteClass = async (req, res) => {
   try {

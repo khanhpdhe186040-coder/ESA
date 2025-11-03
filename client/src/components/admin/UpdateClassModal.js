@@ -24,6 +24,7 @@ export default function UpdateClassModal({ classData, onClose, onUpdate }) {
     students: [],
   });
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState(null); // THÊM STATE LỖI
 
   useEffect(() => {
     (async () => {
@@ -72,47 +73,48 @@ export default function UpdateClassModal({ classData, onClose, onUpdate }) {
       endDate: classData.endDate ? classData.endDate.slice(0, 10) : "",
       capacity: classData.capacity,
       status: classData.status,
-      schedule: classData.schedule.map((s) => ({
+      // Đảm bảo schedule luôn là mảng, xử lý populating
+      schedule: Array.isArray(classData.schedule) ? classData.schedule.map((s) => ({
         weekday: s.weekday,
-        slot:
-          typeof s.slot === "object" && s.slot !== null ? s.slot._id : s.slot,
+        // Lấy _id nếu là object (populate) hoặc string (raw)
+        slot: typeof s.slot === "object" && s.slot !== null ? s.slot._id : s.slot,
         room: s.room?._id || s.room || "",
-      })),
+      })) : [],
 
-      teachers: classData.teachers.map((t) =>
+      teachers: Array.isArray(classData.teachers) ? classData.teachers.map((t) =>
         typeof t === "string" ? t : t._id
-      ),
-      students: classData.students.map((s) =>
+      ) : [],
+      students: Array.isArray(classData.students) ? classData.students.map((s) =>
         typeof s === "string" ? s : s._id
-      ),
+      ) : [],
     });
   }, [classData]);
 
   const setField = (k, v) => {
     setForm((prev) => ({ ...prev, [k]: v }));
     setErrors(prevErrors => ({
-        ...prevErrors,
-        [k]: undefined,
+      ...prevErrors,
+      [k]: undefined,
     }));
-};
- // HÀM xử lý schedule (Tương tự AddClassModal)
- const handleScheduleChange = (index, name, value) => {
-  const newSchedule = [...form.schedule];
-  newSchedule[index] = { ...newSchedule[index], [name]: value };
-  setField("schedule", newSchedule);
-};
-const addSchedule = () => {
-  setField("schedule", [
-    ...form.schedule,
-    { slot: "", room: "", weekday: "" },
-  ]);
-};
-const removeSchedule = (index) => {
-  setField(
-    "schedule",
-    form.schedule.filter((_, i) => i !== index)
-  );
-};
+  };
+  // HÀM xử lý schedule (Tương tự AddClassModal)
+  const handleScheduleChange = (index, name, value) => {
+    const newSchedule = [...form.schedule];
+    newSchedule[index] = { ...newSchedule[index], [name]: value };
+    setField("schedule", newSchedule);
+  };
+  const addSchedule = () => {
+    setField("schedule", [
+      ...form.schedule,
+      { slot: "", room: "", weekday: "" },
+    ]);
+  };
+  const removeSchedule = (index) => {
+    setField(
+      "schedule",
+      form.schedule.filter((_, i) => i !== index)
+    );
+  };
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Class name required";
@@ -131,6 +133,17 @@ const removeSchedule = (index) => {
     if (form.teachers.length === 0) {
       e.teachers = "At least 1 teacher required";
     }
+    
+    // THÊM: Validate Schedule (Đã đồng bộ từ AddClassModal)
+    if (form.schedule.length === 0) {
+      e.schedule = "At least one schedule configuration is required";
+    } else {
+      const hasEmptyScheduleField = form.schedule.some(s => !s.weekday || !s.slot || !s.room);
+      if (hasEmptyScheduleField) {
+        e.schedule = "All fields (Day, Slot, Room) must be selected for every schedule entry";
+      }
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -139,23 +152,23 @@ const removeSchedule = (index) => {
     // 'name' là tên trường (ví dụ: 'teachers' hoặc 'students')
     // 'newValues' là một mảng các ID đã được chọn
     setField(name, newValues);
-};
+  };
 
   const handleUpdate = async () => {
+    setSubmitError(null); // RESET LỖI
     if (!validate()) return;
+    
     try {
       const token = localStorage.getItem("token");
       const payload = {
         ...form,
         capacity: +form.capacity,
-        schedule: [
-          {
-            slot: "6873841e4b8c2980601b4e7c",
-            room: "6878a52b1ee63a2c0fc2d8e7",
-            weekday: "Monday",
-          },
-        ],
+        // Dữ liệu schedule đã được chuẩn hóa trong form state
       };
+      
+      // XÓA HARDCODE SCHEDULE DƯỚI ĐÂY
+      // const payload = { ...form, capacity: +form.capacity, schedule: [ { slot: "6873841e4b8c2980601b4e7c", room: "6878a52b1ee63a2c0fc2d8e7", weekday: "Monday", }, ], };
+      
       const { data } = await axios.put(
         `http://localhost:9999/api/classes/update/${classData._id}`,
         payload,
@@ -163,12 +176,22 @@ const removeSchedule = (index) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
       if (data.success) {
         onUpdate(data.data);
         onClose();
       }
-    } catch (e) {
-      console.error("Update class failed", e);
+    } catch (err) {
+      console.error("Update class failed", err);
+
+      // BẮT LỖI TỪ BACKEND ĐÃ ĐƯỢC CẬP NHẬT
+      if (err.response && err.response.status === 409 && err.response.data.type === 'schedule_conflict') {
+        // Lỗi trùng lịch, set thông báo chi tiết
+        setSubmitError(err.response.data.message);
+      } else {
+        // Lỗi chung (500, 400, v.v.)
+        setSubmitError(err.response?.data?.message || "An unexpected error occurred during class update.");
+      }
     }
   };
 
@@ -318,18 +341,18 @@ const removeSchedule = (index) => {
                         </div>
 
                       
-                  {/* Slot */}
-                  <div>
-                    {/* Thay thế <label> và <select> cũ */}
-                    <SingleSelectDropdown
-                        label="Time Slot"
-                        name="slot"
-                        options={slotsList.map((s) => ({ _id: s._id, name: `${s.from} - ${s.to}` }))}
-                        selectedValue={sch.slot}
-                        onChange={(n, v) => handleScheduleChange(index, n, v)}
-                        isSmall={true}
-                    />
-                  </div>
+                    {/* Slot */}
+                    <div>
+                      {/* Thay thế <label> và <select> cũ */}
+                      <SingleSelectDropdown
+                          label="Time Slot"
+                          name="slot"
+                          options={slotsList.map((s) => ({ _id: s._id, name: `${s.from} - ${s.to}` }))}
+                          selectedValue={sch.slot}
+                          onChange={(n, v) => handleScheduleChange(index, n, v)}
+                          isSmall={true}
+                      />
+                    </div>
 
 
                         {/* Room */}
@@ -355,6 +378,9 @@ const removeSchedule = (index) => {
                         </div>
                     </div>
                 ))}
+                {errors.schedule && (
+                    <p className="text-red-500 text-sm mt-1">{errors.schedule}</p>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -377,6 +403,24 @@ const removeSchedule = (index) => {
                 error={errors.students}
               />
             </div>
+
+            {/* PHẦN HIỂN THỊ LỖI ĐÃ ĐƯỢC THÊM VÀO */}
+            {submitError && (
+              <div className="mt-6 p-2 text-red-700 rounded-xl flex items-start space-x-3 transition-opacity duration-300">
+                {/* Icon cảnh báo (màu đỏ) */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div className="flex-grow">
+                  {/* Giữ tiêu đề đậm và màu chữ lỗi */}
+                  <p className="font-bold text-base mb-0.5 text-red-800">Update Failed</p>
+                  <p className="text-sm text-red-700">{submitError}</p>
+                </div>
+              </div>
+            )}
+
 
             <div className="flex justify-end gap-3 mt-8">
               <button

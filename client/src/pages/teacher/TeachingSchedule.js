@@ -325,45 +325,63 @@ export default function TeachingSchedule() {
                                             });
                                             return (
                                                 <td
-                                                    key={day.label}
-                                                    className="py-2 px-2 border border-gray-200 w-[250px]"
-                                                >
-                                                    {scheduleForDay ? (
-                                                        <div className="space-y-1">
-                                                            <div>
-                                                                <span className="pr-2 font-semibold text-green-500">Class:</span>
-                                                                <span className="text-blue-800 cursor-pointer">
-                                                                    {scheduleForDay.class.name}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="pr-2 font-semibold text-orange-500">Course:</span>
-                                                                <span className="text-blue-800 cursor-pointer">
-                                                                    {scheduleForDay.class.course}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="pr-2 font-semibold text-blue-500">Room:</span>
-                                                                <span className="text-blue-800 cursor-pointer">
-                                                                    {scheduleForDay.room.name}
-                                                                </span>
-                                                            </div>
-                                                            <div className="mb-2">
-                                                                <span className="text-md text-gray-500 font-semibold">
-                                                                    {scheduleForDay.room.location}
-                                                                </span>
-                                                            </div>
+  key={day.label}
+  className="py-2 px-2 border border-gray-200 w-[250px]"
+>
+  {scheduleForDay ? (
+    <div className="space-y-1">
+      <div>
+        <span className="pr-2 font-semibold text-green-500">Class:</span>
+        <span className="text-blue-800 cursor-pointer">
+          {scheduleForDay.class.name}
+        </span>
+      </div>
+      <div>
+        <span className="pr-2 font-semibold text-orange-500">Course:</span>
+        <span className="text-blue-800 cursor-pointer">
+          {scheduleForDay.class.course}
+        </span>
+      </div>
+      <div>
+        <span className="pr-2 font-semibold text-blue-500">Room:</span>
+        <span className="text-blue-800 cursor-pointer">
+          {scheduleForDay.room.name}
+        </span>
+      </div>
+      <div className="mb-2">
+        <span className="text-md text-gray-500 font-semibold">
+          {scheduleForDay.room.location}
+        </span>
+      </div>
 
-                                                            {/* 👈 THÊM NÚT ĐIỂM DANH */}
-                                                            <button
-                                                                onClick={() => handleTakeAttendance(scheduleForDay.id)}
-                                                                className="mt-2 w-full py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition duration-150"
-                                                            >
-                                                                Điểm Danh
-                                                            </button>
-                                                        </div>
-                                                    ) : null}
-                                                </td>
+      {/* ✅ NÚT ĐIỂM DANH CHỈ HIỆN KHI NGÀY HỌC = NGÀY HIỆN TẠI */}
+      {(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const classDate = new Date(scheduleForDay.date).toISOString().split('T')[0];
+
+        if (today === classDate) {
+          return (
+            <button
+              onClick={() => handleTakeAttendance(scheduleForDay.id)}
+              className="mt-2 w-full py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition duration-150"
+            >
+              Điểm Danh
+            </button>
+          );
+        } else {
+          return (
+            <button
+              disabled
+              className="mt-2 w-full py-1 bg-gray-400 text-white text-xs rounded cursor-not-allowed"
+            >
+              Not yet
+            </button>
+          );
+        }
+      })()}
+    </div>
+  ) : null}
+</td>
                                             );
                                         })}
                                     </tr>
