@@ -30,6 +30,7 @@ import Quiz from './pages/student/Quiz';
 import HomePage from './pages/HomePage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import StudentHomePage from './pages/student/StudentHomePage'
+import StudentCourseDetailPage from './pages/student/StudentCourseDetailPage';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -196,7 +197,7 @@ function App() {
           <Route path="/student/register-class" element={<RegisterClass />} />
           <Route path="/student/quiz/:courseId" element={<Quiz />} />
             <Route path="home" element={<StudentHomePage />} />
-          
+          <Route path="course/:courseId" element={<StudentCourseDetailPage />} />
         </Route>
         <Route element={<HomeLayout />}>
           <Route path="/" element={<HomePage />} />
