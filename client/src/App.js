@@ -9,25 +9,29 @@ import TeachingSchedule from "./pages/teacher/TeachingSchedule";
 import TeachingClass from "./pages/teacher/TeachingClass";
 import TeachingClassDetails from "./pages/teacher/TeachingClassDetails";
 import TeachingGradeDetails from "./pages/teacher/TeachingGradeDetails";
+import TeacherProfile from "./pages/teacher/TeacherProfile";
 import QuizManagementPage from './pages/teacher/QuizManagement';
 import QuizForm from './pages/teacher/QuizForm';
 import QuestionManagementPage from './pages/teacher/QuestionManagement';
 import QuestionForm from "./pages/teacher/QuestionForm";
-import ClassMaterialForTeacher from "./pages/teacher/ClassMaterialForTeacher";
+import AttendancePage from './pages/teacher/Attendance';
+import EnrollmentRequests from './pages/teacher/EnrollmentRequests';
 // Student
 import StudentLayout from "./layouts/StudentLayout";
 import StudentSchedule from "./pages/student/StudentSchedule";
-
+import StudentProfile from "./pages/student/StudentProfile";
 import RegisterClass from "./pages/student/RegisterClass";
 import MyClasses from "./pages/student/MyClasses";
 import ClassDetails from "./pages/student/ClassDetails";
 
 import StudentGrades from "./pages/student/Grades";
 import GradeDetails from "./pages/student/GradeDetails";
+import StudentDashboard from "./pages/student/StudentDashboard";
 import Quiz from './pages/student/Quiz';
 import HomePage from './pages/HomePage';
 import CourseDetailPage from './pages/CourseDetailPage';
-import ClassMaterial from "./pages/student/ClassMaterial";
+import StudentHomePage from './pages/student/StudentHomePage'
+import StudentCourseDetailPage from './pages/student/StudentCourseDetailPage';
 // Admin
 import Dashboard from "./pages/admin/DashBoard";
 import CourseManagement from "./pages/admin/CourseManagement";
@@ -37,10 +41,17 @@ import LoginPage from "./Login/Login";
 import ProtectedRoute from "./Login/ProtectedRoute";
 import NewsAdd from "./components/admin/NewsAdd";
 import AdminLayout from "./layouts/AdminLayout";
+import AdminProfile from "./pages/admin/AdminProfile";
 import NewsList from "./components/general/NewsList";
 import NewsDetail from "./components/general/NewsDetail";
 //Home
 import HomeLayout from "./layouts/HomeLayout";
+import CourseRegistration from "./pages/CourseRegistration";
+import VnpayReturn from "./pages/VnpayReturn";
+import ForgotPasswordPage from './Login/ForgotPasswordPage';
+import ResetPasswordPage from './Login/ResetPasswordPage';
+import ClassMaterialForTeacher from "./pages/teacher/ClassMaterialForTeacher";
+import ClassMaterial from "./pages/student/ClassMaterial";
 
 function App() {
     return (
@@ -48,9 +59,14 @@ function App() {
             <Router>
                 <Routes>
                     {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
+                    <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
+                    <Route path="/reset-password" element={<ResetPasswordPage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
+                    <Route path="/course-register/:courseId" element={<CourseRegistration/>}/>
+                    <Route path="/payment/vnpay-return" element={<VnpayReturn/>}/>
                     {/* Teacher Layout */}
                     <Route path="/teacher" element={<TeacherLayout/>}>
+                        <Route path="profile" element={<TeacherProfile/>}/>
                         <Route path="courses" element={<Courses/>}/>
                         <Route path="schedule" element={<TeachingSchedule/>}/>
                         <Route path="classes" element={<TeachingClass/>}/>
@@ -64,6 +80,12 @@ function App() {
                             element={<TeachingGradeDetails/>}
                         />
 
+                        {/* Route để xem lịch dạy (điểm khởi đầu) */}
+                        <Route index element={<TeachingSchedule/>}/>
+
+                        {/* Route để điểm danh chi tiết */}
+                        <Route path="schedule" element={<TeachingSchedule/>}/>
+                        <Route path="attendance/:scheduleId" element={<AttendancePage/>}/>
                         {/* Quản lý danh sách các Quiz */}
                         <Route path="quizzes" element={<QuizManagementPage/>}/>
                         <Route path="quizzes/new" element={<QuizForm/>}/>
@@ -73,7 +95,7 @@ function App() {
                         {/* Quản lý các Question */}
                         <Route path="quizzes/:quizId/questions/new" element={<QuestionForm/>}/>
                         <Route path="quizzes/questions/edit/:questionId" element={<QuestionForm/>}/>
-
+                        <Route path="enrollment-requests" element={<EnrollmentRequests/>}/>
                     </Route>
 
 
@@ -90,7 +112,7 @@ function App() {
                         path="/admin/courses"
                         element={
                             <ProtectedRoute>
-                                <CourseManagement/>{" "}
+                                <CourseManagement/>
                             </ProtectedRoute>
                         }
                     />
@@ -161,6 +183,14 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route
+                        path="/admin/profile"
+                        element={
+                            <ProtectedRoute>
+                                <AdminProfile/>
+                            </ProtectedRoute>
+                        }
+                    />
 
 
                     {/* Student Layout */}
@@ -171,13 +201,14 @@ function App() {
                         <Route path="my-classes" element={<MyClasses/>}/>
                         <Route path="register-class" element={<RegisterClass/>}/>
                         <Route path="my-classes/:classId" element={<ClassDetails/>}/>
-                        <Route path="my-classes/:classId/material" element={<ClassMaterial/>}/>
-
+                        <Route path="profile" element={<StudentProfile/>}/>
                         <Route path="grade" element={<StudentGrades/>}/>
                         <Route path="grade/:classId" element={<GradeDetails/>}/>
                         <Route path="/student/register-class" element={<RegisterClass/>}/>
                         <Route path="/student/quiz/:courseId" element={<Quiz/>}/>
-
+                        <Route path="home" element={<StudentHomePage/>}/>
+                        <Route path="course/:courseId" element={<StudentCourseDetailPage/>}/>
+                        <Route path="my-classes/:classId/material" element={<ClassMaterial/>}/>
                     </Route>
                     <Route element={<HomeLayout/>}>
                         <Route path="/" element={<HomePage/>}/>

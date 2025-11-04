@@ -63,10 +63,16 @@ const classSchema = new Schema(
         required: true,
       },
     ],
+    pendingStudents: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
   },
+  
   {
     timestamps: true,
   }
+  
 );
 
 module.exports = mongoose.model("Class", classSchema);

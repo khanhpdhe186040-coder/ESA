@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    image: {
+      type: String,
+    },
+    imagePublicId: { 
+      type: String, 
+      default: null, 
+    },
     roleId: {
       type: String,
       ref: "Role",

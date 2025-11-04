@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -36,6 +37,7 @@ app.use("/api/teacher", require("./routes/teacherRoute"));
 app.use('/api/quiz', quizRouter);
 app.use('/api/chat', chatRoute);
 const studentRoute = require("./routes/studentRoute");
+app.use('/api/payments', require('./routes/paymentRoute'));
 
 
 app.use("/api/schedule", require("./routes/scheduleRoute"));

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CourseCard from '../../components/general/CourseCard'; 
 import Slider from "react-slick"; // Import the slider component
-
+import { Link } from 'react-router-dom';
 // Import slick-carousel CSS
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
@@ -20,7 +20,7 @@ const HomePage = () => {
 
         const fetchCourses = async () => {
             try {
-                const response = await fetch('http://localhost:9999/api/courses');
+                const response = await fetch('http://localhost:9999/api/courses/public');
                 const responseData = await response.json();
                 if (!responseData.success) {
                     throw new Error(responseData.message || 'Failed to fetch');
@@ -123,12 +123,16 @@ const HomePage = () => {
                 />
             </div>
             
-            {loading ? ( // Hiển thị loading nếu đang fetch
+            {loading ? (
                 <div className="text-center py-10">Loading courses...</div> 
-            ) : currentCourses.length > 0 ? ( // SỬA ĐỔI: Dùng currentCourses thay vì filteredCourses
+            ) : currentCourses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {currentCourses.map(course => (
-                        <CourseCard key={course._id} course={course} />
+                        // 2. THAY ĐỔI NẰM Ở ĐÂY
+                        // Bọc <CourseCard> bằng <Link> trỏ đến route CỦA STUDENT
+                        <Link key={course._id} to={`/student/course/${course._id}`} className="block hover:shadow-lg transition-shadow duration-300 rounded-lg">
+                            <CourseCard course={course} />
+                        </Link>
                     ))}
                 </div>
             ) : (

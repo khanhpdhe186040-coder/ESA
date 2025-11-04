@@ -2,22 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode"; 
 
-const CourseDetailPage = () => {
+const StudentCourseDetailPage = () => { // <-- (Bạn có thể đổi tên component nếu muốn)
     const { courseId } = useParams();
     const [course, setCourse] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
-    const [isEnrolled, setIsEnrolled] = useState(false); // <-- 1. THÊM STATE MỚI
+    const [isEnrolled, setIsEnrolled] = useState(false); 
 
     useEffect(() => {
-        let currentUserId = null; // <-- 2. Lấy ID người dùng ra
+        let currentUserId = null; 
         const token = localStorage.getItem("token");
         if (token) {
           try {
             const decoded = jwtDecode(token);
             setCurrentUser(decoded);
-            currentUserId = decoded.id; // <-- Lưu ID để kiểm tra
+            currentUserId = decoded.id; 
           } catch (e) {
             console.error("Invalid token:", e);
           }
@@ -32,8 +32,6 @@ const CourseDetailPage = () => {
                 }
                 setCourse(responseData.data);
 
-                // <-- 3. LOGIC KIỂM TRA ĐĂNG KÝ
-                // Kiểm tra xem ID người dùng có trong mảng students của khóa học không
                 if (currentUserId && responseData.data.students) {
                     const enrolled = responseData.data.students.includes(currentUserId);
                     setIsEnrolled(enrolled);
@@ -96,7 +94,6 @@ const CourseDetailPage = () => {
                     Back to All Courses
                 </Link>
                 
-                {/* <-- 4. SỬA NÚT ĐĂNG KÝ --> */}
                 {isEnrolled ? (
                     <button
                         disabled
@@ -124,4 +121,4 @@ const CourseDetailPage = () => {
     );
 };
 
-export default CourseDetailPage;
+export default StudentCourseDetailPage; // <-- Đổi tên export

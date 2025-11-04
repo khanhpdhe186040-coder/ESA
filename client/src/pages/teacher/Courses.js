@@ -16,7 +16,7 @@ export default function Courses() {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:9999/api/courses", {
+        const response = await fetch("http://localhost:9999/api/courses/public", {
           headers: {
             Authorization: `Bearer ${token}`
           }
