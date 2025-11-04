@@ -193,7 +193,13 @@ export default function Profile({ id: idProp, initialUser, onUpdated }) {
     const newErrors = {};
     let valid = true;
 
-    if (!form.fullName.trim()) { newErrors.fullName = "Full name is required"; valid = false; }
+    if (!form.fullName.trim()) {
+  newErrors.fullName = "Full name is required";
+  valid = false;
+} if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(form.fullName.trim())) {
+  newErrors.fullName = "Full name can only contain letters, spaces, hyphens, or apostrophes";
+  valid = false;
+}
     if (!form.userName.trim()) { newErrors.userName = "Username is required"; valid = false; }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -210,7 +210,7 @@ exports.updateUserById = async (req, res) => {
     if (error?.message?.includes("Only JPG") || error?.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({ message: error.message });
     }
-    res.status(500).json({ message: "Server error", error: error.message || error });
+    res.status(500).json({ message: "Server error or UserName / Email exists", error: error.message || error });
   }
 };
 
