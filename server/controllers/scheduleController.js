@@ -173,7 +173,7 @@ const getStudentSchedule = async (req, res) => {
       const scheduleIdStr = item._id.toString();
       
       // Lấy trạng thái điểm danh. Mặc định là 'pending' (chưa điểm danh) nếu không tìm thấy
-      const attendanceStatus = attendanceMap.get(scheduleIdStr) || 'pending'; 
+      const attendanceStatus = attendanceMap.get(scheduleIdStr) || 'not yet'; 
 
       // Định dạng lại đối tượng trả về
       const slot = item.slotId ? {

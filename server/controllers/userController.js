@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const Role = require("../models/Role");
 const Course = require("../models/Course");
 const { sendEmail } = require("../services/emailService");
+const crypto = require('crypto');
 const { 
     sendGuestRegistrationEmail, 
     sendStudentEnrollmentEmail 
@@ -298,36 +299,40 @@ exports.registerForCourse = async (req, res, next) => {
       });
     }
 
-    // Default password (already hashed) - Bạn có thể thay đổi pass này
-    const defaultPassword = "$2b$10$kcDbZIG9Pg.4/5iqMi1m1OWNz/hUrmxCLm1MDjaP4EUGStKyA2jum";
+    // 2. Tạo mật khẩu ngẫu nhiên (ví dụ: 8 ký tự)
+    const randomPassword = crypto.randomBytes(4).toString('hex'); // 4 bytes = 8 ký tự hex
 
-    // Create new user
+    // 3. Hash mật khẩu ngẫu nhiên này
+    const hashPassword = await bcrypt.hash(randomPassword, 10);
+
+    // 4. Create new user với mật khẩu đã HASH
     const newUser = new userAccount({
       fullName,
       userName,
-      password: defaultPassword,
+      password: hashPassword, // <-- Dùng mật khẩu đã hash
       email,
       number,
       birthday,
       address,
       roleId: studentRole.id,
-      status: "active", // Hoặc 'pending' nếu bạn muốn admin duyệt
+      status: "active",
     });
     
-   // 2. Lưu người dùng mới
+    // 5. Lưu người dùng
     const savedUser = await newUser.save();
 
-    // 3. SỬA LỖI: Dùng updateOne VÀ KIỂM TRA KẾT QUẢ
+    // 6. Dùng $addToSet để ghi danh
     const updateResult = await Course.updateOne(
-      { _id: courseId }, // Lọc
-      { $addToSet: { students: savedUser._id } } // Thao tác
+      { _id: courseId },
+      { $addToSet: { students: savedUser._id } }
     );
 
-    // 4. CHỈ GỬI EMAIL NẾU DATABASE BỊ THAY ĐỔI
-    // (updateResult.modifiedCount > 0) nghĩa là sinh viên vừa được thêm vào
+    // 7. Gửi email với mật khẩu CHƯA HASH (plain text)
     if (updateResult.modifiedCount > 0) {
-        sendGuestRegistrationEmail(savedUser, course);
+        // Gửi mật khẩu 'randomPassword' (chưa hash)
+        sendGuestRegistrationEmail(savedUser, course, randomPassword); 
     }
+   
 
     res.status(201).json({
       success: true,

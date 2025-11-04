@@ -1,7 +1,13 @@
 const Class = require("../models/Class");
 const Schedule = require("../models/Schedule");
 const User = require("../models/User");
+const Course = require("../models/Course");
 const mongoose = require("mongoose");
+const { 
+  sendTeacherEnrollmentNotification,
+  sendStudentApprovalEmail,
+  sendStudentRejectionEmail
+} = require("../services/emailService");
 const weekdayToNumber = (weekday) => {
   const map = {
     Sunday: 1,
@@ -553,72 +559,71 @@ const getClassesByUserId = async (req, res) => {
 
 const getRegisterableClasses = async (req, res) => {
   try {
-    const { studentId } = req.params;
-    //find all classes
-    // First, get the raw classes without populating schedule
-    let classes = await Class.find()
+    const { studentId } = req.params; // Đây là Mongo _id
+
+    // 1. Tìm tất cả các Khóa học (Course) mà sinh viên này đã mua
+    const enrolledCourses = await Course.find({ 
+      students: studentId 
+    }).select('_id').lean();
+    
+    const enrolledCourseIds = enrolledCourses.map(course => course._id);
+
+    if (enrolledCourseIds.length === 0) {
+      // Nếu sinh viên chưa mua khóa học nào, trả về mảng rỗng
+      return res.status(200).json([]);
+    }
+
+    // 2. Tìm tất cả các Lớp học (Class) thuộc các khóa học đó
+    let classes = await Class.find({ 
+      courseId: { $in: enrolledCourseIds } 
+    })
       .populate("courseId", "name")
       .populate("teachers", "fullName")
+      .populate("schedule.slot", "from to") // <-- Populate schedule
+      .populate("schedule.room", "name") // <-- Populate schedule
       .lean();
-    console.log('Raw classes data before schedule population:', JSON.stringify(classes, null, 2));
     
-    // Manually populate schedule for each class
-    classes = await Promise.all(classes.map(async (cls) => {
-      // Handle case where schedule might be in Schedule or schedule
-      const scheduleData = cls.Schedule || cls.schedule || [];
+    // 3. Định dạng lại dữ liệu và thêm trạng thái đăng ký
+    const registerableClasses = classes.map((cls) => {
       
-      if (scheduleData.length > 0) {
-        // Manually populate slot and room for each schedule item
-        const populatedSchedule = await Promise.all(scheduleData.map(async (s) => {
-          const populated = { ...s };
-          
-          if (s.slot) {
-            const slot = await mongoose.model('Slot').findById(s.slot).select('from to').lean();
-            populated.slot = slot || { from: 'N/A', to: 'N/A' };
-          }
-          
-          if (s.room) {
-            const room = await mongoose.model('Room').findById(s.room).select('name').lean();
-            populated.room = room || { name: 'N/A' };
-          }
-          
-          return populated;
-        }));
-        
-        return { ...cls, schedule: populatedSchedule };
-      }
+      const isEnrolled = (cls.students || []).some(id => id.toString() === studentId);
+      const isPending = (cls.pendingStudents || []).some(id => id.toString() === studentId);
       
-      return { ...cls, schedule: [] };
-    }));
-    
-    console.log('Classes after manual population:', JSON.stringify(classes, null, 2));
+      let enrollmentStatus = "none";
+      if (isEnrolled) enrollmentStatus = "enrolled";
+      else if (isPending) enrollmentStatus = "pending";
 
-    const registerableClasses = classes.map((cls) => ({
-      _id: cls._id,
-      name: cls.name || "N/A",
-      courseId: cls.courseId?._id || null,
-      courseName: cls.courseId?.name || "N/A",
-      teachers: Array.isArray(cls.teachers) 
-        ? cls.teachers.map(t => t?.fullName || "N/A").filter(Boolean).join(", ") 
-        : "N/A",
-      capacity: cls.capacity || 0,
-      schedule: Array.isArray(cls.schedule) && cls.schedule.length > 0  // Using lowercase to match schema
-        ? cls.schedule.map(s => {  // Using lowercase to match schema
-                    console.log('Processing schedule item:', JSON.stringify(s, null, 2));
-            return {
-              weekday: s?.weekday || "N/A",
-              from: s?.slot?.from || "N/A",
-              to: s?.slot?.to || "N/A",
-              room: s?.room?.name || "N/A"
-            };
-          })
-        : [],
-      studentsCount: Array.isArray(cls.students) ? cls.students.length : 0,
-      status: cls.status || "inactive",
-      registered: Array.isArray(cls.students) 
-        ? cls.students.some(id => id.toString() === studentId) 
-        : false,
-    }));
+      return {
+        _id: cls._id,
+        name: cls.name || "N/A",
+        courseId: cls.courseId?._id || null,
+        courseName: cls.courseId?.name || "N/A",
+        teachers: Array.isArray(cls.teachers) 
+          ? cls.teachers.map(t => t?.fullName || "N/A").filter(Boolean).join(", ") 
+          : "N/A",
+        capacity: cls.capacity || 0,
+        
+        // Trả về ngày tháng
+        startDate: cls.startDate,
+        endDate: cls.endDate,
+
+        schedule: Array.isArray(cls.schedule) && cls.schedule.length > 0
+          ? cls.schedule.map(s => {
+              return {
+                weekday: s?.weekday || "N/A",
+                from: s?.slot?.from || "N/A",
+                to: s?.slot?.to || "N/A",
+                room: s?.room?.name || "N/A"
+              };
+            })
+          : [],
+        studentsCount: Array.isArray(cls.students) ? cls.students.length : 0,
+        status: cls.status || "inactive",
+        
+        // Trả về trạng thái đăng ký mới
+        enrollmentStatus: enrollmentStatus, 
+      };
+    });
 
     res.status(200).json(registerableClasses);
   } catch (error) {
@@ -633,75 +638,56 @@ const getRegisterableClasses = async (req, res) => {
 
 const enrollInClass = async (req, res) => {
   try {
-    console.log('Request user:', req.user); // Debug log
-    console.log('Request params:', req.params); // Debug log
-    
     const mongoUserId = req.user?.id; // JWT user _id
-    const classId = req.params.id; // Now matches the route parameter
-    
-    console.log('Extracted IDs - User:', mongoUserId, 'Class:', classId); // Debug log
+    const classId = req.params.id; 
 
-    // Validate IDs
-    const isUserIdValid = mongoose.Types.ObjectId.isValid(mongoUserId);
-    const isClassIdValid = mongoose.Types.ObjectId.isValid(classId);
-    
-    if (!isUserIdValid || !isClassIdValid) {
-      console.error('Invalid IDs:', { 
-        userId: mongoUserId, 
-        classId,
-        isUserIdValid,
-        isClassIdValid 
-      });
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID(s)",
-        debug: {
-          mongoUserId,
-          classId,
-          mongoUserIdValid: mongoose.Types.ObjectId.isValid(mongoUserId),
-          classIdValid: mongoose.Types.ObjectId.isValid(classId),
-        },
-      });
+    // ... (Giữ nguyên phần validate IDs và User, từ dòng 470-488)
+     if (!mongoose.Types.ObjectId.isValid(mongoUserId) || !mongoose.Types.ObjectId.isValid(classId)) {
+      return res.status(400).json({ success: false, message: "Invalid ID(s)" });
     }
-
-    // Ensure user exists
     const user = await User.findById(mongoUserId).lean();
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
+    // ...
 
-    // Load the class
-    const foundClass = await Class.findById(classId);
+    const foundClass = await Class.findById(classId).populate('teachers', 'fullName email'); // <-- Populate teachers
     if (!foundClass) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Class not found" });
+      return res.status(404).json({ success: false, message: "Class not found" });
     }
 
-    // Check if already enrolled
-    const isAlreadyEnrolled = foundClass.students.some(
-      (s) => s.toString() === mongoUserId
-    );
+    // Check if already enrolled (trong 'students' hoặc 'pendingStudents')
+    const isAlreadyEnrolled = foundClass.students.some((s) => s.toString() === mongoUserId);
     if (isAlreadyEnrolled) {
-      return res
-        .status(409)
-        .json({ success: false, message: "Already enrolled in this class" });
+      return res.status(409).json({ success: false, message: "Already enrolled in this class" });
+    }
+    
+    const isAlreadyPending = foundClass.pendingStudents.some((s) => s.toString() === mongoUserId);
+    if (isAlreadyPending) {
+      return res.status(409).json({ success: false, message: "Enrollment request is already pending" });
     }
 
-    // Check capacity
+    // Check capacity (Chỉ tính 'students' đã được duyệt)
     if (foundClass.students.length >= foundClass.capacity) {
       return res.status(400).json({ success: false, message: "Class is full" });
     }
 
-    // ✅ Push raw ObjectId to the students array
-    foundClass.students.push(new mongoose.Types.ObjectId(mongoUserId));
+    // ✅ THAY ĐỔI LOGIC: Thêm vào PENDING
+    foundClass.pendingStudents.push(new mongoose.Types.ObjectId(mongoUserId));
     await foundClass.save();
+
+    // ✅ GỬI EMAIL THÔNG BÁO CHO GIÁO VIÊN
+    try {
+      for (const teacher of foundClass.teachers) {
+        sendTeacherEnrollmentNotification(teacher, user, foundClass);
+      }
+    } catch (emailError) {
+      console.error("Failed to send teacher notification email:", emailError);
+    }
 
     res.status(200).json({
       success: true,
-      message: "Successfully enrolled",
+      message: "Successfully requested enrollment. Waiting for approval.",
     });
   } catch (error) {
     console.error("Error enrolling in class:", error);
@@ -710,6 +696,118 @@ const enrollInClass = async (req, res) => {
       message: "Internal server error",
       error: error.message,
     });
+  }
+};
+
+// ==========================================================
+// HÀM MỚI (Thêm vào classController.js)
+// ==========================================================
+const getPendingEnrollments = async (req, res) => {
+  try {
+    const teacherId = req.user?.id; // Lấy ID giáo viên từ JWT
+
+    // Tìm các lớp do giáo viên này dạy VÀ có sinh viên đang chờ duyệt
+    const classes = await Class.find({
+      teachers: teacherId,
+      pendingStudents: { $exists: true, $not: { $size: 0 } }
+    })
+    .populate('courseId', 'name')
+    .populate('pendingStudents', 'fullName email') // Populate thông tin SV chờ
+    .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Pending enrollments retrieved successfully",
+      data: classes,
+    });
+
+  } catch (error) {
+     console.error("Error fetching pending enrollments:", error);
+     res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================================
+// HÀM MỚI (Thêm vào classController.js)
+// ==========================================================
+const approveEnrollment = async (req, res) => {
+  try {
+    const { classId, studentId } = req.params;
+    const teacherId = req.user?.id;
+
+    const foundClass = await Class.findById(classId);
+
+    // 1. Kiểm tra (Class tồn tại, Giáo viên dạy lớp này, SV có trong pending)
+    if (!foundClass) {
+      return res.status(404).json({ success: false, message: "Class not found" });
+    }
+    if (!foundClass.teachers.some(t => t.toString() === teacherId)) {
+       return res.status(403).json({ success: false, message: "You are not authorized to manage this class" });
+    }
+    if (!foundClass.pendingStudents.some(s => s.toString() === studentId)) {
+       return res.status(404).json({ success: false, message: "Student not found in pending list" });
+    }
+     if (foundClass.students.length >= foundClass.capacity) {
+      return res.status(400).json({ success: false, message: "Class is full" });
+    }
+    
+    // 2. Di chuyển Student ID
+    foundClass.pendingStudents.pull(studentId); // Xóa khỏi pending
+    foundClass.students.addToSet(studentId); // Thêm vào students (addToSet an toàn)
+    
+    await foundClass.save();
+    
+    // 3. Gửi email cho sinh viên
+    const student = await User.findById(studentId).lean();
+    if (student) {
+      sendStudentApprovalEmail(student, foundClass);
+    }
+
+    res.status(200).json({ success: true, message: "Student approved and enrolled" });
+
+  } catch (error) {
+     console.error("Error approving enrollment:", error);
+     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ==========================================================
+// HÀM MỚI (Thêm vào classController.js)
+// ==========================================================
+const rejectEnrollment = async (req, res) => {
+  try {
+    const { classId, studentId } = req.params;
+    const teacherId = req.user?.id;
+
+    const foundClass = await Class.findById(classId);
+
+    // 1. Kiểm tra
+    if (!foundClass) {
+      return res.status(404).json({ success: false, message: "Class not found" });
+    }
+     if (!foundClass.teachers.some(t => t.toString() === teacherId)) {
+       return res.status(403).json({ success: false, message: "You are not authorized to manage this class" });
+    }
+
+    // 2. Xóa Student ID khỏi pending
+    foundClass.pendingStudents.pull(studentId);
+    await foundClass.save();
+
+    // 3. Gửi email cho sinh viên
+    const student = await User.findById(studentId).lean();
+    if (student) {
+      sendStudentRejectionEmail(student, foundClass);
+    }
+    
+    res.status(200).json({ success: true, message: "Student rejected" });
+
+  } catch (error) {
+     console.error("Error rejecting enrollment:", error);
+     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -789,4 +887,7 @@ module.exports = {
   getRegisterableClasses,
   enrollInClass,
   unenrollFromClass,
+  getPendingEnrollments, 
+  approveEnrollment, 
+  rejectEnrollment, 
 };
