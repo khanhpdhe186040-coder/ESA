@@ -105,7 +105,7 @@ const RegisterClass = () => {
               <div className="mb-4 min-h-[200px]">
                 <h2 className="text-xl font-semibold">{cls.name}</h2>
                 <p>
-                  <strong>Course:</strong> {cls.name}
+                  <strong>Course:</strong> {cls.courseName}
                 </p>
                 <p>
                   <strong>Teachers:</strong> {cls.teachers}

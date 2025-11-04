@@ -47,12 +47,16 @@ import NewsDetail from "./components/general/NewsDetail";
 import HomeLayout from "./layouts/HomeLayout";
 import CourseRegistration from "./pages/CourseRegistration";
 import VnpayReturn from "./pages/VnpayReturn";
+import ForgotPasswordPage from './Login/ForgotPasswordPage';
+import ResetPasswordPage from './Login/ResetPasswordPage';
 function App() {
   return (
     <SocketProvider>
       <Router>
         <Routes>
         {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/course-register/:courseId" element={<CourseRegistration />} />
         <Route path="/payment/vnpay-return" element={<VnpayReturn />} />
