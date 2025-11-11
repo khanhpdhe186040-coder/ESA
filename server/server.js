@@ -39,7 +39,7 @@ app.use('/api/chat', chatRoute);
 const studentRoute = require("./routes/studentRoute");
 app.use('/api/payments', require('./routes/paymentRoute'));
 
-
+app.use('/api/attendance', require("./routes/attendanceRoute"))
 app.use("/api/schedule", require("./routes/scheduleRoute"));
 app.use("/api/teacher", require("./routes/teacherRoute"));
 app.use("/api/student", studentRoute);

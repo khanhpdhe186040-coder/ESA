@@ -226,8 +226,10 @@ export default function Courses() {
                       <Eye className="w-5 h-5" />
                     </button>
                     <button
-                      className="text-gray-600 hover:text-red-500"
-                      onClick={() => handleDeleteCourse(c._id)}
+                      disabled
+                      className="text-gray-300 cursor-not-allowed"
+                      onClick={(e) => e.preventDefault()}
+                      title="Delete feature is disabled"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
