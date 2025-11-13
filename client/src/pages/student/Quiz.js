@@ -199,6 +199,16 @@ const Quiz = () => {
     if (error) return <div className="p-6 text-red-500 text-center">{error}</div>;
 
     if (isQuizFinished) {
+        const handleBackClick = () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                // Nếu có token (Student), về trang đăng ký lớp
+                navigate('/student/home');
+            } else {
+                // Nếu không có token (Guest), về trang chủ
+                navigate('/');
+            }
+        };
         return (
             <div className="p-6 max-w-2xl mx-auto text-center">
                 <h1 className="text-3xl font-bold mb-4">
@@ -209,7 +219,16 @@ const Quiz = () => {
                     <p className="text-5xl font-bold my-4 text-blue-600">{finalScore} / {questions.length}</p>
                 </div>
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
-                    <button onClick={() => navigate('/student/register-class')} className="w-full bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700">Back to Register Class</button>
+                    
+                 
+                    <button 
+                        onClick={handleBackClick} 
+                        className="w-full bg-gray-600 text-white py-3 rounded-lg font-bold hover:bg-gray-700"
+                    >
+                   
+                        {localStorage.getItem("token") ? 'Back to Home' : 'Back to Home'}
+                    </button>
+                    
                     <button onClick={handleRetakeQuiz} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">Retake Quiz</button>
                 </div>
             </div>

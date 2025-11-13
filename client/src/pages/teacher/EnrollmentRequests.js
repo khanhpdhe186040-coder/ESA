@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { X } from "lucide-react"; // <-- Thêm icon X
 
 const EnrollmentRequests = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(null); // { classId, studentId }
-
+  const [processing, setProcessing] = useState(null);
+  
+  // 1. THÊM STATE CHO NOTIFICATION
+  const [notification, setNotification] = useState({ type: '', message: '' });
+  
   const token = localStorage.getItem("token");
 
   const fetchRequests = async () => {
@@ -25,9 +29,20 @@ const EnrollmentRequests = () => {
     }
   };
 
+  // (Giữ nguyên useEffect fetchRequests)
   useEffect(() => {
     fetchRequests();
   }, [token]);
+
+  // 2. THÊM useEffect ĐỂ TỰ ĐỘNG ẨN THÔNG BÁO
+  useEffect(() => {
+    if (notification.message) {
+      const timer = setTimeout(() => {
+        setNotification({ type: '', message: '' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const handleAction = async (action, classId, studentId) => {
     setProcessing({ classId, studentId });
@@ -42,12 +57,17 @@ const EnrollmentRequests = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      alert(`Student ${action}d successfully!`);
+      // 3. THAY THẾ ALERT BẰNG setNotification
+      setNotification({ type: 'success', message: `Student ${action}d successfully!` });
+      
       // Tải lại danh sách
       fetchRequests(); 
 
     } catch (err) {
-      alert("Action failed: " + (err.response?.data?.message || err.message));
+      const errorMessage = err.response?.data?.message || err.message;
+      
+      // 4. THAY THẾ ALERT BẰNG setNotification
+      setNotification({ type: 'error', message: `Action failed: ${errorMessage}` });
     } finally {
       setProcessing(null);
     }
@@ -59,6 +79,23 @@ const EnrollmentRequests = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Enrollment Requests</h1>
+      
+      {/* 5. HIỂN THỊ JSX CỦA NOTIFICATION */}
+      {notification.message && (
+        <div 
+          className={`p-4 mb-4 rounded-md flex justify-between items-center ${
+            notification.type === 'success' 
+            ? 'bg-green-100 text-green-700' 
+            : 'bg-red-100 text-red-700'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification({ type: '', message: '' })}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+      
       
       {classes.length === 0 && (
         <p className="text-gray-500">No pending enrollment requests.</p>

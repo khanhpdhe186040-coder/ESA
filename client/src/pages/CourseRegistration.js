@@ -44,6 +44,7 @@ const CourseRegistration = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState("");
   const formRef = useRef(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -123,12 +124,12 @@ const CourseRegistration = () => {
       try {
         setLoading(true);
         
-        // Get current user
+        let decodedUser = null; // <-- 1. Tạo biến tạm
         const token = localStorage.getItem("token");
         if (token) {
           try {
-            const decoded = jwtDecode(token);
-            setCurrentUser(decoded);
+            decodedUser = jwtDecode(token); // <-- 2. Gán vào biến tạm
+            setCurrentUser(decodedUser);
           } catch (e) {}
         }
 
@@ -144,6 +145,16 @@ const CourseRegistration = () => {
         
           if (foundCourse) {
             setCourse(foundCourse);
+
+            // 3. THÊM LOGIC KIỂM TRA ENROLLMENT
+            if (decodedUser && foundCourse.students) {
+              const enrolled = (foundCourse.students || []).some(
+                (studentId) => studentId.toString() === decodedUser.id
+              );
+              setIsEnrolled(enrolled);
+            }
+            // KẾT THÚC LOGIC MỚI
+
           } else {
             setError("Course not found");
           }
@@ -151,7 +162,7 @@ const CourseRegistration = () => {
 
         // Fetch reviews
         try {
-          if (effectiveCourseId) {
+         if (effectiveCourseId) {
             const reviewsResponse = await axios.get(
               `http://localhost:9999/api/courses/${effectiveCourseId}/reviews`
             );
@@ -160,8 +171,6 @@ const CourseRegistration = () => {
             }
           }
         } catch (err) {}
-
-        // Fetch teacher
         try {
           const teacherResponse = await axios.get(
             "http://localhost:9999/api/users/by-role?roleId=r2"
@@ -181,11 +190,10 @@ const CourseRegistration = () => {
     if (effectiveCourseId) {
       fetchCourse();
     } else {
-      // Do not navigate to login; stay and show error instead
       setLoading(false);
       setError("Course not found");
     }
-  }, [courseId]);
+  }, [courseId, effectiveCourseId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -691,24 +699,41 @@ const CourseRegistration = () => {
 
               {/* LOGIC ĐIỀU KIỆN MỚI */}
               {currentUser ? (
-                // DÀNH CHO SINH VIÊN ĐÃ ĐĂNG NHẬP
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    You are logged in as <strong>{currentUser.userName || currentUser.id}</strong>.
-                  </p>
-                  <p className="text-gray-600">
-                    You don't need to fill out the form again. Click 'Register Now' to proceed to payment.
-                  </p>
-                  <button
-                    onClick={handleStudentSubmit} // Sử dụng hàm mới
-                    disabled={isSubmitting}
-                    className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 ${
-                      isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    {isSubmitting ? "Processing..." : "Register Now"}
-                  </button>
-                </div>
+                
+                // === BẮT ĐẦU SỬA ===
+                // 1. KIỂM TRA NẾU ĐÃ ENROLLED
+                isEnrolled ? (
+                  <div className="space-y-4 text-center">
+                    <p className="font-semibold text-green-600">
+                      You are already registered for this course.
+                    </p>
+                    <button
+                      disabled
+                      className="w-full bg-gray-400 text-white font-bold py-3 rounded-lg cursor-not-allowed"
+                    >
+                      Registered
+                    </button>
+                  </div>
+                ) : (
+                // 2. NẾU CHƯA ENROLLED (LOGIC CŨ)
+                  <div className="space-y-4">
+                    <p className="text-gray-700">
+                      You are logged in as <strong>{currentUser.userName || currentUser.id}</strong>.
+                    </p>
+                    <p className="text-gray-600">
+                      You don't need to fill out the form again. Click 'Register Now' to proceed to payment.
+                    </p>
+                    <button
+                      onClick={handleStudentSubmit} // Sử dụng hàm mới
+                      disabled={isSubmitting}
+                      className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 ${
+                        isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {isSubmitting ? "Processing..." : "Register Now"}
+                    </button>
+                  </div>
+                )
               ) : (
                 // DÀNH CHO KHÁCH (Biểu mẫu cũ)
                 <form onSubmit={handleGuestSubmit} className="space-y-4"> {/* Sử dụng hàm mới */}

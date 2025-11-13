@@ -21,7 +21,7 @@ const QuizForm = () => {
         const fetchCourses = async () => {
             try {
                 // This API is public, so no token needed
-                const res = await axios.get('http://localhost:9999/api/courses');
+                const res = await axios.get('http://localhost:9999/api/courses/public');
                 if (res.data.success) {
                     setCourses(res.data.data);
                 }

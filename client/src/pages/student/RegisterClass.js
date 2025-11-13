@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
-
+import { X } from "lucide-react";
 // Hàm helper để format ngày
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
@@ -16,7 +16,7 @@ const RegisterClass = () => {
   const [error, setError] = useState(null);
   const [enrolling, setEnrolling] = useState(null); // Dùng null hoặc classId
   const navigate = useNavigate();
-
+  const [notification, setNotification] = useState({ type: '', message: '' });
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -42,7 +42,16 @@ const RegisterClass = () => {
     };
     fetchClasses();
   }, []);
-  
+
+  useEffect(() => {
+    if (notification.message) {
+      // Nếu có thông báo, tự động xóa sau 3 giây
+      const timer = setTimeout(() => {
+        setNotification({ type: '', message: '' });
+      }, 3000);
+      return () => clearTimeout(timer); // Xóa timer nếu component unmount
+    }
+  }, [notification]); // Chạy lại mỗi khi notification thay đổi
   
   const handleEnroll = async (classId) => {
     try {
@@ -56,7 +65,11 @@ const RegisterClass = () => {
       );
       
       if (response.data.success) {
-        alert('Enrollment request sent! Please wait for teacher approval.');
+        setNotification({ 
+            type: 'success', 
+            message: 'Enrollment request sent! Please wait for teacher approval.' 
+        });
+        
         // Cập nhật UI thành "Pending"
         setClasses(prevClasses => 
           prevClasses.map(cls => 
@@ -69,9 +82,11 @@ const RegisterClass = () => {
     } catch (error) {
       console.error('Enrollment error:', error);
       const errorMessage = error.response?.data?.message || 'Failed to enroll in class';
-      alert(`Error: ${errorMessage}`);
+      
+    
+      setNotification({ type: 'error', message: `Error: ${errorMessage}` });
     } finally {
-      setEnrolling(null); // Hoàn tất
+      setEnrolling(null);
     }
   };
 
@@ -126,6 +141,20 @@ const RegisterClass = () => {
       <h1 className="text-2xl font-bold mb-4 text-blue-800">
         Register for Classes
       </h1>
+      {notification.message && (
+        <div 
+          className={`p-4 mb-4 rounded-md flex justify-between items-center ${
+            notification.type === 'success' 
+            ? 'bg-green-100 text-green-700' 
+            : 'bg-red-100 text-red-700'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification({ type: '', message: '' })}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
       <input
         type="text"
         placeholder="Search classes by name or course..."
