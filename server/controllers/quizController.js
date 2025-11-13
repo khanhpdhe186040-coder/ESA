@@ -139,10 +139,19 @@ exports.createQuestion = async (req, res) => {
     try {
         const { quizId } = req.params;
         const { questionText, answers } = req.body;
-        const newQuestion = new Question({ quizId, questionText, type: 'multiple-choice' });
+        
+        // SỬA LỖI: Chuyển đổi quizId (String) thành ObjectId trước khi lưu
+        const newQuestion = new Question({ 
+            quizId: new mongoose.Types.ObjectId(quizId), // <-- SỬA Ở ĐÂY
+            questionText, 
+            type: 'multiple-choice' 
+        });
+        
         await newQuestion.save();
+        
         const answersToCreate = answers.map(ans => ({ ...ans, questionId: newQuestion._id }));
         await Answer.insertMany(answersToCreate);
+        
         res.status(201).json({ success: true, message: 'Question created successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

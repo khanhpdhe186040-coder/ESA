@@ -94,21 +94,12 @@ const StudentCourseDetailPage = () => { // <-- (Bạn có thể đổi tên comp
                     Back to All Courses
                 </Link>
                 
-                {isEnrolled ? (
-                    <button
-                        disabled
-                        className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-lg shadow-md cursor-not-allowed"
-                    >
-                        Registered
-                    </button>
-                ) : (
-                    <Link 
-                        to={`/course-register/${course._id}`}
-                        className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors"
-                    >
-                        Register
-                    </Link>
-                )}
+              <Link 
+                to={`/course-register/${course._id}`}
+                className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors"
+            >
+                Register
+            </Link>
 
                 <Link 
                     to={`/student/quiz/${course._id}`}
