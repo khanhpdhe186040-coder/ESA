@@ -557,33 +557,38 @@ const getClassesByUserId = async (req, res) => {
   }
 };
 
+// classController.js
+
 const getRegisterableClasses = async (req, res) => {
   try {
     const { studentId } = req.params; // Đây là Mongo _id
 
-    // 1. Tìm tất cả các Khóa học (Course) mà sinh viên này đã mua
+    // 1. Tìm tất cả các Khóa học (Course) mà sinh viên này đã mua (Giữ nguyên)
     const enrolledCourses = await Course.find({ 
       students: studentId 
     }).select('_id').lean();
     
     const enrolledCourseIds = enrolledCourses.map(course => course._id);
 
-    if (enrolledCourseIds.length === 0) {
-      // Nếu sinh viên chưa mua khóa học nào, trả về mảng rỗng
-      return res.status(200).json([]);
-    }
-
-    // 2. Tìm tất cả các Lớp học (Class) thuộc các khóa học đó
+  
     let classes = await Class.find({ 
-      courseId: { $in: enrolledCourseIds } 
+      $or: [
+        { courseId: { $in: enrolledCourseIds } }, 
+        { students: studentId },                 
+        { pendingStudents: studentId }         
+      ]
     })
       .populate("courseId", "name")
       .populate("teachers", "fullName")
-      .populate("schedule.slot", "from to") // <-- Populate schedule
-      .populate("schedule.room", "name") // <-- Populate schedule
+      .populate("schedule.slot", "from to") 
+      .populate("schedule.room", "name") 
       .lean();
     
-    // 3. Định dạng lại dữ liệu và thêm trạng thái đăng ký
+    // ==========================================================
+    // ## KẾT THÚC SỬA LỖI LOGIC ##
+    // ==========================================================
+    
+    // 3. Định dạng lại dữ liệu và thêm trạng thái (Giữ nguyên)
     const registerableClasses = classes.map((cls) => {
       
       const isEnrolled = (cls.students || []).some(id => id.toString() === studentId);
@@ -603,7 +608,6 @@ const getRegisterableClasses = async (req, res) => {
           : "N/A",
         capacity: cls.capacity || 0,
         
-        // Trả về ngày tháng
         startDate: cls.startDate,
         endDate: cls.endDate,
 
@@ -620,7 +624,6 @@ const getRegisterableClasses = async (req, res) => {
         studentsCount: Array.isArray(cls.students) ? cls.students.length : 0,
         status: cls.status || "inactive",
         
-        // Trả về trạng thái đăng ký mới
         enrollmentStatus: enrollmentStatus, 
       };
     });
@@ -641,7 +644,7 @@ const enrollInClass = async (req, res) => {
     const mongoUserId = req.user?.id; // JWT user _id
     const classId = req.params.id; 
 
-    // ... (Giữ nguyên phần validate IDs và User, từ dòng 470-488)
+   
      if (!mongoose.Types.ObjectId.isValid(mongoUserId) || !mongoose.Types.ObjectId.isValid(classId)) {
       return res.status(400).json({ success: false, message: "Invalid ID(s)" });
     }
@@ -649,7 +652,6 @@ const enrollInClass = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    // ...
 
     const foundClass = await Class.findById(classId).populate('teachers', 'fullName email'); // <-- Populate teachers
     if (!foundClass) {
